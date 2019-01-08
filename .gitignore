@@ -1,0 +1,10 @@
+*.bak
+*.pyc
+*/venv
+venv/*
+*/.idea
+.idea/*
+*.xls
+*.html
+*.txt
+*.xml
