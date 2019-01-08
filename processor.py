@@ -6,11 +6,11 @@ import subprocess
 from subprocess import Popen, PIPE, STDOUT
 import sys
 import re
-import MethodExecution
 import os
-from Stack import *
-from MethodExecution import *
 from xml.dom.minidom import Document
+from Stack import *
+import MethodExecution
+from MethodExecution import *
 
 # 进程号-进程名的列表
 threadMap = {};
@@ -23,6 +23,12 @@ doc = Document()
 
 # 输出的xml文件的路径
 XML_OUTPUT_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "output.xml");
+
+# XML node 属性名字：方法名
+XML_NODE_ATTR_METHOD_SIGNATURE = "method"
+
+# XML node 属性名字：此次执行总时间（微秒，包括内部调用的其它方法）
+XML_NODE_ATTR_METHOD_TIME = "time"
 
 # 解析trace文件
 def processTrace(strTraceFileAbsPath):
@@ -77,28 +83,34 @@ def processLine(order, strLine):
         if stack.is_empty():
             # if methodExecution.methodBoundaryAction == MethodExecution.ENTER:
             stack.push(methodExecution)
-            node = doc.createElement(str(methodExecution.order))
+            node = doc.createElement("_" + str(methodExecution.order))
+            node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, methodExecution.strMethodSignature)
             # 这时xml也是空的，加入首个node
             doc.appendChild(node)
         # 栈非空，取出最上面的元素，跟目前这个进行配对检测
         else:
             methodExecutionInStack = stack.peek()
             isMatch = matchMethodExecution(methodExecutionInStack, methodExecution)
-            # 如果能配对，则互相登记对方的order
+            # 如果能配对，则互相登记对方的order，给即将出栈的MethodExecution登记总耗时（包括其内部调用的其它方法耗时在内）
             # 然后出栈
             if isMatch:
                 methodExecutionInStack.counterPartOrder = methodExecution.order
                 methodExecution.counterPartOrder = methodExecutionInStack.order
+                methodExecutionInStack.executionTimeMicroSec = methodExecution.elapsedTimeMicroSec - methodExecutionInStack.elapsedTimeMicroSec
+                # 即将出栈的MethodExecution是方法执行开始时的信息，现在已经执行完了，给他设置上总耗时
+                nodeForMethodExecutionInStack = doc.getElementsByTagName("_" + str(methodExecution.counterPartOrder))[0]
+                nodeForMethodExecutionInStack.setAttribute(XML_NODE_ATTR_METHOD_TIME, str(methodExecutionInStack.executionTimeMicroSec))
                 stack.pop()
             # 如果无法配对，则入栈，并写入xml
             else:
                 # 写入xml
-                node = doc.createElement(str(methodExecution.order))
+                node = doc.createElement("_" + str(methodExecution.order))
                 # stack中上一个methodExecution所对应的xml node一定是当前这个要插入的xml node的parent
                 # 找出并作为parent node加入当前的node
                 lastNodeInStack = stack.peek()
-                parentNode = doc.getElementsByTagName(str(lastNodeInStack.order))[0]
+                parentNode = doc.getElementsByTagName("_" + str(lastNodeInStack.order))[0]
                 parentNode.appendChild(node)
+                node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, methodExecution.strMethodSignature)
                 # 入栈
                 stack.push(methodExecution)
 pass;
