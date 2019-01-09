@@ -28,12 +28,6 @@ XML_ROOT_NODE_NAME = "root"
 rootNode = doc.createElement(XML_ROOT_NODE_NAME)
 doc.appendChild(rootNode)
 
-# 输出的过滤后的方法执行信息的文本文件路径
-METHOD_EXECUTION_INFO_OUTPUT_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "output.txt");
-
-# 输出的xml文件的路径
-XML_OUTPUT_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "output.xml");
-
 # XML node 属性名字：方法名
 XML_NODE_ATTR_METHOD_SIGNATURE = "method"
 
@@ -46,10 +40,22 @@ XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
 # 解析trace文件
 def processTrace(strTraceFileAbsPath):
 
+    # 输入的trace文件的目录
+    strTraceFileDirPath = os.path.split(strTraceFileAbsPath)[0]
+
+    # 输入的trace文件的名字(不含.trace后缀)
+    strTraceFileName = os.path.splitext(os.path.split(strTraceFileAbsPath)[1])[0];
+
+    # 输出的过滤后的方法执行信息的文本文件路径
+    strMethodExecutionInfoOutputAbsPath = os.path.join(strTraceFileDirPath, strTraceFileName + ".txt")
+
+    # 输出的xml文件的路径
+    strXMLOutputAbsPath = os.path.join(strTraceFileDirPath, strTraceFileName + ".xml")
+
     # 删除之前的所有输出文件
     try:
-        os.remove(METHOD_EXECUTION_INFO_OUTPUT_ABS_PATH)
-        os.remove(XML_OUTPUT_ABS_PATH)
+        os.remove(strMethodExecutionInfoOutputAbsPath)
+        os.remove(strXMLOutputAbsPath)
     except: BaseException
 
     bar = progressbar.ProgressBar();
@@ -62,7 +68,7 @@ def processTrace(strTraceFileAbsPath):
     for line in bar(iter(pOpenInstance.stdout.readline, b'')):
         line = line.decode().strip()
         line = re.sub(r"\s+", " ", line)
-        processLineResult = processLine(order, line)
+        processLineResult = processLine(order, line, strMethodExecutionInfoOutputAbsPath)
         if processLineResult and "stopMethodTracing" in processLineResult.strLine:
             # 向xml的rootNode设置stopMethodTracing时的elapsedTime(微秒)，这也就是所trace的整个过程的耗时
             doc.getElementsByTagName(XML_ROOT_NODE_NAME)[0].setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
@@ -79,7 +85,7 @@ def processTrace(strTraceFileAbsPath):
             stillInStackNode.setAttribute(XML_NODE_ATTR_METHOD_TIME, "unknown")
 
     # 写入xml
-    with open(XML_OUTPUT_ABS_PATH, 'w') as f:
+    with open(strXMLOutputAbsPath, 'w') as f:
         strXML = doc.toprettyxml(indent='\t', encoding='utf-8').decode()
         # 用浏览器打开xml的时候需注掉下面两行
         # strXML = re.sub(r"&lt;", "<", strXML)
@@ -90,12 +96,12 @@ def processTrace(strTraceFileAbsPath):
     stack.print()
 
     # 用浏览器打开xml
-    webbrowser.open(XML_OUTPUT_ABS_PATH)
+    webbrowser.open(strXMLOutputAbsPath)
     pass;
 
 
 # 处理dmtracedump得到的trace文本文件中的一行
-def processLine(order, strLine):
+def processLine(order, strLine, strMethodExecutionInfoOutputAbsPath):
 
     # 如果该行是线程号-线程名的对应，则存入表中
     isThreadMap = re.match(r"^[0-9]+ ([a-zA-Z0-9-_:/.\u4e00-\u9fa5]+[ :-_])*[a-zA-Z0-9-_:/.\u4e00-\u9fa5]+$", strLine)
@@ -134,9 +140,9 @@ def processLine(order, strLine):
             return ProcessLineResult(order, strLine, strElapsedTimeMicroSec)
 
         # 写入txt
-        with open(METHOD_EXECUTION_INFO_OUTPUT_ABS_PATH, 'a') as f:
-            f.write(strLine)
-            f.write("\n")
+        # with open(strMethodExecutionInfoOutputAbsPath, 'a') as f:
+        #     f.write(strLine)
+        #     f.write("\n")
 
         # 栈是空的，直接入栈，并写入xml
         if stack.is_empty():
