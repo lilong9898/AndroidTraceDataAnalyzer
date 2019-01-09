@@ -9,8 +9,8 @@ import re
 import os
 from xml.dom.minidom import Document
 from Stack import *
-import MethodExecution
 from MethodExecution import *
+from ProcessLineResult import *
 
 # 进程号-进程名的列表
 threadMap = {};
@@ -20,6 +20,11 @@ stack = Stack()
 
 # 解析trace文件完毕后，调用信息会输出到xml里
 doc = Document()
+# 给这个xml设置一个根节点，只为了补齐逻辑，不代表任何函数调用
+# XML 根节点名字
+XML_ROOT_NODE_NAME = "root"
+rootNode = doc.createElement(XML_ROOT_NODE_NAME)
+doc.appendChild(rootNode)
 
 # 输出的xml文件的路径
 XML_OUTPUT_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "output.xml");
@@ -30,6 +35,9 @@ XML_NODE_ATTR_METHOD_SIGNATURE = "method"
 # XML node 属性名字：此次执行总时间（微秒，包括内部调用的其它方法）
 XML_NODE_ATTR_METHOD_TIME = "time"
 
+# 按特定包名过滤
+PACKAGE_NAME = "com.zhangyue"
+
 # 解析trace文件
 def processTrace(strTraceFileAbsPath):
     commandDmTraceDump = ["dmtracedump", "-o", strTraceFileAbsPath]
@@ -37,30 +45,36 @@ def processTrace(strTraceFileAbsPath):
     order = 0;
     for line in iter(pOpenInstance.stdout.readline, b''):
         line = line.decode().strip()
-        line = re.sub(r" \.+", " ", line)
         line = re.sub(r"\s+", " ", line)
-        processLine(order, line)
-        print(str(order) + ", " + line)
+        processLineResult = processLine(order, line)
+        if processLineResult and "stopMethodTracing" in processLineResult.strLine:
+            # 向xml的rootNode设置stopMethodTracing时的elapsedTime(微秒)，这也就是所trace的整个过程的耗时
+            doc.getElementsByTagName(XML_ROOT_NODE_NAME)[0].setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
         order = order + 1
     pOpenInstance.stdout.close()
-    print(str(stack.size()))
+    print("-------------Now, stack size is {0}--------------".format(str(stack.size())))
     with open(XML_OUTPUT_ABS_PATH, 'w') as f:
         f.write(doc.toprettyxml(indent='\t', encoding='utf-8').decode())
+
+    stack.print()
     pass;
 
 
 # 处理dmtracedump得到的trace文本文件中的一行
 def processLine(order, strLine):
+
     # 如果该行是线程号-线程名的对应，则存入表中
-    isThreadMap = re.match(r"^[0-9]+ ([a-zA-Z0-9-_:/.]+[ :-_])*[a-zA-Z0-9-_:/.]+$", strLine)
+    isThreadMap = re.match(r"^[0-9]+ ([a-zA-Z0-9-_:/.\u4e00-\u9fa5]+[ :-_])*[a-zA-Z0-9-_:/.\u4e00-\u9fa5]+$", strLine)
     splitResult = strLine.split(" ", 1)
     if isThreadMap:
         threadNumber = splitResult[0]
         threadName = splitResult[1]
         threadMap[threadNumber] = threadName
+
     # 如果该行是方法进入/退出的信息
     isMethodExecution = re.match(r"^[0-9]+ (ent|xit).*$", strLine)
     if isMethodExecution:
+        strLine = strLine.replace("-", " ")
         splitResult = strLine.split(" ", 5)
         strMethodThreadNumber = splitResult[0]
         strExecutionBoundaryAction = MethodExecution.ENTER
@@ -71,14 +85,17 @@ def processLine(order, strLine):
         strElapsedTimeMicroSec = splitResult[2]
         strMethodSignature = splitResult[3] + " " + splitResult[4]
         strMethodClass = splitResult[5]
-        # 根据解析出的信息创建MethodExecution对象
-        methodExecution = MethodExecution(order, threadMap[strMethodThreadNumber],
-                                          strMethodSignature, strMethodClass,
-                                          strExecutionBoundaryAction, strElapsedTimeMicroSec)
-        # 只考虑主线程的方法
-        if methodExecution.strMethodThreadName != "main":
-            return
 
+        # 创建methodExecution
+        methodExecution = MethodExecution(order, threadMap[strMethodThreadNumber],
+                                      strMethodSignature, strMethodClass,
+                                      strExecutionBoundaryAction, strElapsedTimeMicroSec)
+
+        # 按照多个条件进行过滤
+        if shouldBeFiltered(methodExecution):
+            return ProcessLineResult(order, strLine, strElapsedTimeMicroSec)
+
+        print(strLine)
         # 栈是空的，直接入栈，并写入xml
         if stack.is_empty():
             # if methodExecution.methodBoundaryAction == MethodExecution.ENTER:
@@ -86,7 +103,7 @@ def processLine(order, strLine):
             node = doc.createElement("_" + str(methodExecution.order))
             node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, methodExecution.strMethodSignature)
             # 这时xml也是空的，加入首个node
-            doc.appendChild(node)
+            rootNode.appendChild(node)
         # 栈非空，取出最上面的元素，跟目前这个进行配对检测
         else:
             methodExecutionInStack = stack.peek()
@@ -100,6 +117,7 @@ def processLine(order, strLine):
                 # 即将出栈的MethodExecution是方法执行开始时的信息，现在已经执行完了，给他设置上总耗时
                 nodeForMethodExecutionInStack = doc.getElementsByTagName("_" + str(methodExecution.counterPartOrder))[0]
                 nodeForMethodExecutionInStack.setAttribute(XML_NODE_ATTR_METHOD_TIME, str(methodExecutionInStack.executionTimeMicroSec))
+                nodeForMethodExecutionInStack.tagName = "_" + str(methodExecutionInStack.executionTimeMicroSec)
                 stack.pop()
             # 如果无法配对，则入栈，并写入xml
             else:
@@ -113,12 +131,24 @@ def processLine(order, strLine):
                 node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, methodExecution.strMethodSignature)
                 # 入栈
                 stack.push(methodExecution)
-pass;
+        return ProcessLineResult(order, strLine, strElapsedTimeMicroSec)
 
 # 检测两个MethodExecution是否信息一样，但是动作相反（一个是进入，一个是退出）
 def matchMethodExecution(methodExecution1:MethodExecution, methodExecution2:MethodExecution):
     return methodExecution1.strMethodThreadName == methodExecution2.strMethodThreadName and methodExecution1.strMethodClass == methodExecution2.strMethodClass and methodExecution1.strMethodSignature == methodExecution2.strMethodSignature and methodExecution1.methodBoundaryAction != methodExecution2.methodBoundaryAction
 
+# 检测某条方法执行信息是否要被过滤掉（按线程/方法包名等过滤）
+def shouldBeFiltered(methodExecution:MethodExecution):
+    shouldBeFiltered = False
+    # 非主线程的过滤掉
+    if methodExecution.strMethodThreadName != "main":
+        shouldBeFiltered = True
+    elif not re.match(r".*(com.zhangyue|com.chaozh).*", methodExecution.strMethodSignature):
+        shouldBeFiltered = True
+    # 方法签名前面带"."或"..."的过滤掉，防止干扰配对
+    elif re.match(r"^\.+.*$", methodExecution.strMethodSignature):
+        shouldBeFiltered = True
+    return  shouldBeFiltered
 
 # if len(sys.argv) == 2:
 # processTrace(sys.argv[1]);

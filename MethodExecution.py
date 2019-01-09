@@ -1,9 +1,9 @@
 #! /usr/bin/python3.5
 # coding=utf-8
 
+
 # 某个方法的一次调用
 class MethodExecution:
-
     # 该方法开始执行
     ENTER = "ENTER";
     # 该方法执行完毕
@@ -11,8 +11,8 @@ class MethodExecution:
     # 未定的序号
     ORDER_UNKNOWN = -1
 
-    def __init__(self, order, strMethodThreadName, strMethodSignature, strMethodClass, methodBoundaryAction, strElapsedTimeMicroSec):
-
+    def __init__(self, order, strMethodThreadName, strMethodSignature, strMethodClass,
+                 methodBoundaryAction, strElapsedTimeMicroSec):
         # 序号，自增
         self.order = order;
 
@@ -39,3 +39,10 @@ class MethodExecution:
         pass
 
     pass
+
+    def print(self):
+        print(
+            "MethodExecution [threadName = {0}, boundary action = {1}, signature = {2}, class = {3}]".format(
+                self.strMethodThreadName, self.methodBoundaryAction, self.strMethodSignature,
+                self.strMethodClass))
+        pass

@@ -25,3 +25,12 @@ class Stack(object):
     # 把栈顶元素丢出去（程序员喜欢把这个过程叫做出栈……）
     def pop(self):
         return self.items.pop()
+
+    # 打印栈中元素
+    def print(self):
+        for item in self.items:
+            item.print()
+
+    # 打印栈的大小
+    def printSize(self):
+        print(str(self.size()))
