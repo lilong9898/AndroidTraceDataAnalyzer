@@ -12,6 +12,7 @@ from xml.dom.minidom import Document
 from Stack import *
 from MethodExecution import *
 from ProcessLineResult import *
+import webbrowser
 
 # 进程号-进程名的列表
 threadMap = {};
@@ -80,13 +81,16 @@ def processTrace(strTraceFileAbsPath):
     # 写入xml
     with open(XML_OUTPUT_ABS_PATH, 'w') as f:
         strXML = doc.toprettyxml(indent='\t', encoding='utf-8').decode()
-        strXML = re.sub(r"&lt;", "<", strXML)
-        strXML = re.sub(r"&gt;", ">", strXML)
+        # 用浏览器打开xml的时候需注掉下面两行
+        # strXML = re.sub(r"&lt;", "<", strXML)
+        # strXML = re.sub(r"&gt;", ">", strXML)
         f.write(strXML)
 
     print("-------------Done, current stack size is {0}--------------".format(str(stack.size())))
     stack.print()
 
+    # 用浏览器打开xml
+    webbrowser.open(XML_OUTPUT_ABS_PATH)
     pass;
 
 
@@ -194,6 +198,17 @@ def shouldBeFiltered(methodExecution:MethodExecution):
         shouldBeFiltered = True
     return  shouldBeFiltered
 
-# if len(sys.argv) == 2:
-# processTrace(sys.argv[1]);
-processTrace("/home/lilong/bin/dmtrace.trace")
+# 入口
+# 无参数，用示例的example_dmtrace.txt
+if len(sys.argv) == 1:
+    print("WARNING : NO ARGUMENTS, EXAMPLE DMTRACE WILL BE USED")
+    processTrace(os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "example_dmtrace.trace"))
+    exit(0)
+# 输入一个参数，即trace文件的绝对路径
+elif len(sys.argv) == 2:
+    processTrace(sys.argv[1]);
+    exit(0)
+# 参数太多，错误
+else:
+    print("ERROR : TOO MANY ARGUMENTS, SHOULD BE 1 OR 2")
+    exit(1)
