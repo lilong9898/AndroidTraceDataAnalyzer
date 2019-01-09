@@ -3,7 +3,7 @@
 
 # 必须输入一个参数，即原始trace文件的路径
 import subprocess
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import *
 import sys
 import re
 import os
@@ -35,8 +35,8 @@ XML_NODE_ATTR_METHOD_SIGNATURE = "method"
 # XML node 属性名字：此次执行总时间（微秒，包括内部调用的其它方法）
 XML_NODE_ATTR_METHOD_TIME = "time"
 
-# 按特定包名过滤
-PACKAGE_NAME = "com.zhangyue"
+# XML node 属性名字：所有子方法的执行总时间（微秒，因为只统计掌阅包名的方法，所以一个方法的总时间是大于其所有子方法的总时间的）
+XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
 
 # 解析trace文件
 def processTrace(strTraceFileAbsPath):
@@ -54,7 +54,10 @@ def processTrace(strTraceFileAbsPath):
     pOpenInstance.stdout.close()
     print("-------------Now, stack size is {0}--------------".format(str(stack.size())))
     with open(XML_OUTPUT_ABS_PATH, 'w') as f:
-        f.write(doc.toprettyxml(indent='\t', encoding='utf-8').decode())
+        strXML = doc.toprettyxml(indent='\t', encoding='utf-8').decode()
+        strXML = re.sub(r"&lt;", "<", strXML)
+        strXML = re.sub(r"&gt;", ">", strXML)
+        f.write(strXML)
 
     stack.print()
     pass;
@@ -118,6 +121,15 @@ def processLine(order, strLine):
                 nodeForMethodExecutionInStack = doc.getElementsByTagName("_" + str(methodExecution.counterPartOrder))[0]
                 nodeForMethodExecutionInStack.setAttribute(XML_NODE_ATTR_METHOD_TIME, str(methodExecutionInStack.executionTimeMicroSec))
                 nodeForMethodExecutionInStack.tagName = "_" + str(methodExecutionInStack.executionTimeMicroSec)
+
+                if nodeForMethodExecutionInStack.parentNode:
+                    if nodeForMethodExecutionInStack.parentNode.getAttribute(XML_NODE_ATTR_CHILD_METHOD_TIME):
+                        parentNodeChildMethodTime = int(nodeForMethodExecutionInStack.parentNode.getAttribute(XML_NODE_ATTR_CHILD_METHOD_TIME))
+                    else:
+                        parentNodeChildMethodTime = 0
+                    parentNodeChildMethodTime = parentNodeChildMethodTime + methodExecutionInStack.executionTimeMicroSec
+                    nodeForMethodExecutionInStack.parentNode.setAttribute(XML_NODE_ATTR_CHILD_METHOD_TIME, str(parentNodeChildMethodTime))
+
                 stack.pop()
             # 如果无法配对，则入栈，并写入xml
             else:
