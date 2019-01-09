@@ -7,6 +7,7 @@ from subprocess import *
 import sys
 import re
 import os
+import progressbar
 from xml.dom.minidom import Document
 from Stack import *
 from MethodExecution import *
@@ -26,6 +27,9 @@ XML_ROOT_NODE_NAME = "root"
 rootNode = doc.createElement(XML_ROOT_NODE_NAME)
 doc.appendChild(rootNode)
 
+# 输出的过滤后的方法执行信息的文本文件路径
+METHOD_EXECUTION_INFO_OUTPUT_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "output.txt");
+
 # 输出的xml文件的路径
 XML_OUTPUT_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "output.xml");
 
@@ -40,10 +44,19 @@ XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
 
 # 解析trace文件
 def processTrace(strTraceFileAbsPath):
+
+    # 删除之前的所有输出文件
+    os.remove(METHOD_EXECUTION_INFO_OUTPUT_ABS_PATH)
+    os.remove(XML_OUTPUT_ABS_PATH)
+
+    bar = progressbar.ProgressBar();
+
     commandDmTraceDump = ["dmtracedump", "-o", strTraceFileAbsPath]
     pOpenInstance = subprocess.Popen(commandDmTraceDump, stdout=PIPE, bufsize=1)
+
     order = 0;
-    for line in iter(pOpenInstance.stdout.readline, b''):
+    print("Working...")
+    for line in bar(iter(pOpenInstance.stdout.readline, b'')):
         line = line.decode().strip()
         line = re.sub(r"\s+", " ", line)
         processLineResult = processLine(order, line)
@@ -51,14 +64,18 @@ def processTrace(strTraceFileAbsPath):
             # 向xml的rootNode设置stopMethodTracing时的elapsedTime(微秒)，这也就是所trace的整个过程的耗时
             doc.getElementsByTagName(XML_ROOT_NODE_NAME)[0].setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
         order = order + 1
+        # print(order)
     pOpenInstance.stdout.close()
-    print("-------------Now, stack size is {0}--------------".format(str(stack.size())))
+
+    # 写入xml
     with open(XML_OUTPUT_ABS_PATH, 'w') as f:
         strXML = doc.toprettyxml(indent='\t', encoding='utf-8').decode()
         strXML = re.sub(r"&lt;", "<", strXML)
         strXML = re.sub(r"&gt;", ">", strXML)
         f.write(strXML)
 
+    # 完成，打印剩余stack的信息
+    print("-------------Done, current stack size is {0}--------------".format(str(stack.size())))
     stack.print()
     pass;
 
@@ -89,22 +106,30 @@ def processLine(order, strLine):
         strMethodSignature = splitResult[3] + " " + splitResult[4]
         strMethodClass = splitResult[5]
 
-        # 创建methodExecution
-        methodExecution = MethodExecution(order, threadMap[strMethodThreadNumber],
-                                      strMethodSignature, strMethodClass,
-                                      strExecutionBoundaryAction, strElapsedTimeMicroSec)
+        methodExecution = None
+        try:
+            # 创建methodExecution，因为有时候dmtrace.trace中的线程表不全，所以这里try catch一下，让找不到线程名的methodExecution被忽略掉
+            methodExecution = MethodExecution(order, threadMap[strMethodThreadNumber],
+                                          strMethodSignature, strMethodClass,
+                                          strExecutionBoundaryAction, strElapsedTimeMicroSec)
+        except BaseException:
+            return ProcessLineResult(order, strLine, strElapsedTimeMicroSec)
 
         # 按照多个条件进行过滤
         if shouldBeFiltered(methodExecution):
             return ProcessLineResult(order, strLine, strElapsedTimeMicroSec)
 
-        print(strLine)
+        # 写入txt
+        with open(METHOD_EXECUTION_INFO_OUTPUT_ABS_PATH, 'a') as f:
+            f.write(strLine)
+            f.write("\n")
+
         # 栈是空的，直接入栈，并写入xml
         if stack.is_empty():
             # if methodExecution.methodBoundaryAction == MethodExecution.ENTER:
             stack.push(methodExecution)
             node = doc.createElement("_" + str(methodExecution.order))
-            node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, methodExecution.strMethodSignature)
+            node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, re.sub(r"^\.+", "", methodExecution.strMethodSignature))
             # 这时xml也是空的，加入首个node
             rootNode.appendChild(node)
         # 栈非空，取出最上面的元素，跟目前这个进行配对检测
@@ -140,7 +165,7 @@ def processLine(order, strLine):
                 lastNodeInStack = stack.peek()
                 parentNode = doc.getElementsByTagName("_" + str(lastNodeInStack.order))[0]
                 parentNode.appendChild(node)
-                node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, methodExecution.strMethodSignature)
+                node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, re.sub(r"^\.+", "", methodExecution.strMethodSignature))
                 # 入栈
                 stack.push(methodExecution)
         return ProcessLineResult(order, strLine, strElapsedTimeMicroSec)
@@ -156,9 +181,6 @@ def shouldBeFiltered(methodExecution:MethodExecution):
     if methodExecution.strMethodThreadName != "main":
         shouldBeFiltered = True
     elif not re.match(r".*(com.zhangyue|com.chaozh).*", methodExecution.strMethodSignature):
-        shouldBeFiltered = True
-    # 方法签名前面带"."或"..."的过滤掉，防止干扰配对
-    elif re.match(r"^\.+.*$", methodExecution.strMethodSignature):
         shouldBeFiltered = True
     return  shouldBeFiltered
 
