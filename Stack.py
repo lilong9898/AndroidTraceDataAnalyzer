@@ -26,6 +26,10 @@ class Stack(object):
     def pop(self):
         return self.items.pop()
 
+    # 返回栈中元素
+    def getItems(self):
+        return self.items
+
     # 打印栈中元素
     def print(self):
         for item in self.items:

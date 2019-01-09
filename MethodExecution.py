@@ -34,8 +34,6 @@ class MethodExecution:
         # 此时相对startMethodTracing开始时过去的时间（微秒）
         self.elapsedTimeMicroSec = int(strElapsedTimeMicroSec)
 
-        # 此次方法执行所用的总时间（包括其内部调用的其它方法的耗时）（微秒）
-        self.executionTimeMicroSec = 0
         pass
 
     pass

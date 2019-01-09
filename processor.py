@@ -46,8 +46,10 @@ XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
 def processTrace(strTraceFileAbsPath):
 
     # 删除之前的所有输出文件
-    os.remove(METHOD_EXECUTION_INFO_OUTPUT_ABS_PATH)
-    os.remove(XML_OUTPUT_ABS_PATH)
+    try:
+        os.remove(METHOD_EXECUTION_INFO_OUTPUT_ABS_PATH)
+        os.remove(XML_OUTPUT_ABS_PATH)
+    except: BaseException
 
     bar = progressbar.ProgressBar();
 
@@ -64,8 +66,16 @@ def processTrace(strTraceFileAbsPath):
             # 向xml的rootNode设置stopMethodTracing时的elapsedTime(微秒)，这也就是所trace的整个过程的耗时
             doc.getElementsByTagName(XML_ROOT_NODE_NAME)[0].setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
         order = order + 1
-        # print(order)
     pOpenInstance.stdout.close()
+
+    # 完成，处理stack中剩余项的信息，剩余项是有ENTER无EXIT的方法执行，正常情况下总数应该<=1个
+
+    # 对于stack中剩余项，应该将其对应的xml node的time标记为unknown
+    if stack.size() > 0:
+        for methodExecution in stack.getItems():
+            stillInStackNode = doc.getElementsByTagName("_tmp_" + str(methodExecution.order))[0]
+            stillInStackNode.tagName = "unknown"
+            stillInStackNode.setAttribute(XML_NODE_ATTR_METHOD_TIME, "unknown")
 
     # 写入xml
     with open(XML_OUTPUT_ABS_PATH, 'w') as f:
@@ -74,9 +84,9 @@ def processTrace(strTraceFileAbsPath):
         strXML = re.sub(r"&gt;", ">", strXML)
         f.write(strXML)
 
-    # 完成，打印剩余stack的信息
     print("-------------Done, current stack size is {0}--------------".format(str(stack.size())))
     stack.print()
+
     pass;
 
 
@@ -128,7 +138,7 @@ def processLine(order, strLine):
         if stack.is_empty():
             # if methodExecution.methodBoundaryAction == MethodExecution.ENTER:
             stack.push(methodExecution)
-            node = doc.createElement("_" + str(methodExecution.order))
+            node = doc.createElement("_tmp_" + str(methodExecution.order))
             node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, re.sub(r"^\.+", "", methodExecution.strMethodSignature))
             # 这时xml也是空的，加入首个node
             rootNode.appendChild(node)
@@ -143,7 +153,7 @@ def processLine(order, strLine):
                 methodExecution.counterPartOrder = methodExecutionInStack.order
                 methodExecutionInStack.executionTimeMicroSec = methodExecution.elapsedTimeMicroSec - methodExecutionInStack.elapsedTimeMicroSec
                 # 即将出栈的MethodExecution是方法执行开始时的信息，现在已经执行完了，给他设置上总耗时
-                nodeForMethodExecutionInStack = doc.getElementsByTagName("_" + str(methodExecution.counterPartOrder))[0]
+                nodeForMethodExecutionInStack = doc.getElementsByTagName("_tmp_" + str(methodExecution.counterPartOrder))[0]
                 nodeForMethodExecutionInStack.setAttribute(XML_NODE_ATTR_METHOD_TIME, str(methodExecutionInStack.executionTimeMicroSec))
                 nodeForMethodExecutionInStack.tagName = "_" + str(methodExecutionInStack.executionTimeMicroSec)
 
@@ -159,11 +169,11 @@ def processLine(order, strLine):
             # 如果无法配对，则入栈，并写入xml
             else:
                 # 写入xml
-                node = doc.createElement("_" + str(methodExecution.order))
+                node = doc.createElement("_tmp_" + str(methodExecution.order))
                 # stack中上一个methodExecution所对应的xml node一定是当前这个要插入的xml node的parent
                 # 找出并作为parent node加入当前的node
                 lastNodeInStack = stack.peek()
-                parentNode = doc.getElementsByTagName("_" + str(lastNodeInStack.order))[0]
+                parentNode = doc.getElementsByTagName("_tmp_" + str(lastNodeInStack.order))[0]
                 parentNode.appendChild(node)
                 node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, re.sub(r"^\.+", "", methodExecution.strMethodSignature))
                 # 入栈
