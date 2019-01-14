@@ -135,6 +135,10 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
         AddTextNode(TagEmptyElement, ' />');
         xmlHolderElement.appendChild(TagEmptyElement);
         xmlHolderElement.appendChild(document.createElement('br'));
+        TagEmptyElement.onclick = function() {
+            //no-op
+            event.cancelBubble = true;
+        }
         //SetVisibility(TagEmptyElement,true);
     } else { // mo child nodes
 
