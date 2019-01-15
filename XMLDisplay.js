@@ -351,3 +351,11 @@ function collapseDownToDepthOf(node, depth) {
     }
 }
 
+/**
+读取返回写死的数据源xml字符串
+无法在js内用xml的路径来访问其内容，而必须在生成js时就写死xml的内容作为函数返回值
+因为chrome浏览器禁止跨域访问，不能在js中直接读取本地文件的内容
+*/
+function getXMLString(){
+    return "XML_STR_PLACE_HOLDER";
+}

@@ -137,17 +137,29 @@ def processTrace(strTraceFileAbsPath):
         f.write(strXML)
 
     # (4) 其它辅助文件写入磁盘
-    # 直接复制即可，然后改掉html里引用的css，js和xml的名字
+    # 直接复制即可
     shutil.copy(HTML_ABS_PATH, strHTMLOutputAbsPath)
     shutil.copy(CSS_ABS_PATH, strCSSOutputAbsPath)
     shutil.copy(JS_ABS_PATH, strJSOutputAbsPath)
 
+    # 然后改掉html里引用的css，js和xml的名字
     with open(strHTMLOutputAbsPath, "r") as htmlFile:
-        content = htmlFile.read()
-        content = content.replace("XMLDisplay", strTraceFileName)
-        content = content.replace("example_dmtrace", strTraceFileName)
+        htmlContent = htmlFile.read()
+        htmlContent = htmlContent.replace("XMLDisplay", strTraceFileName)
+        htmlContent = htmlContent.replace("example_dmtrace", strTraceFileName)
     with open(strHTMLOutputAbsPath, "w") as htmlFile:
-        htmlFile.write(content)
+        htmlFile.write(htmlContent)
+
+    # 读取xml内容到字符串
+    with open(strXMLOutputAbsPath, "r") as xmlFile:
+        xmlContent = xmlFile.read()
+
+    # 替换掉js里的getXMLString方法的返回值
+    with open(strJSOutputAbsPath, "r") as jsFile:
+        jsContent = jsFile.read()
+        jsContent = jsContent.replace("XML_STR_PLACE_HOLDER", xmlContent.replace("\"", "\\\"").replace("\n", "\"+\n\""))
+    with open(strJSOutputAbsPath, "w") as jsFile:
+        jsFile.write(jsContent)
 
     print("-------------Done, current stack size is {0}--------------".format(str(stack.size())))
     stack.print()
