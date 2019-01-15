@@ -20,17 +20,26 @@ XML_NODE_ATTR_METHOD_SIGNATURE = "method"
 # XML node 属性名字：此次执行总时间（微秒，包括内部调用的其它方法）
 XML_NODE_ATTR_METHOD_TIME = "time"
 
+# XML node 属性名字：此次执行的耗时，在所有方法中排第几
+XML_NODE_ATTR_METHOD_TIME_PRIORITY = "priority"
+
 # XML node 属性名字：所有子方法的执行总时间（微秒，因为只统计掌阅包名的方法，所以一个方法的总时间是大于其所有子方法的总时间的）
 XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
 
 # XML node 属性名字：深度
 XML_NODE_ATTR_DEPTH = "depth"
 
+# 只标注前多少名的priority
+LEAST_PRIORITY_CONCERNED = 10;
+
 # 进程号-进程名的列表
 threadMap = {};
 
 # 方法进入/退出信息被放进这个stack里进行配对
 stack = Stack()
+
+# 用来存放所有方法开始执行时的MethodExecution的容器，为了排序
+methodEnters = []
 
 # 解析trace文件完毕后，调用信息会输出到xml里
 doc = Document()
@@ -79,8 +88,21 @@ def processTrace(strTraceFileAbsPath):
         order = order + 1
     pOpenInstance.stdout.close()
 
-    # 完成，处理stack中剩余项的信息，剩余项是有ENTER无EXIT的方法执行，正常情况下总数应该<=1个
+    # 文件读取和逐行的处理完成，进行整体处理
 
+    # (1)针对方法的耗时，进行排序并标注到xml中
+    methodEntersSorted = sorted(methodEnters, key=lambda methodExecution:methodExecution.executionTimeMicroSec, reverse=True)
+
+    priority = 0;
+    for methodExecutionEnter in methodEntersSorted:
+        nodeForMethodExecutionEnter = doc.getElementsByTagName("_tmp_" + str(methodExecutionEnter.order))[0]
+        nodeForMethodExecutionEnter.setAttribute(XML_NODE_ATTR_METHOD_TIME, str(methodExecutionEnter.executionTimeMicroSec))
+        if priority <= LEAST_PRIORITY_CONCERNED and int(nodeForMethodExecutionEnter.getAttribute(XML_NODE_ATTR_DEPTH)) < 3:
+            nodeForMethodExecutionEnter.setAttribute(XML_NODE_ATTR_METHOD_TIME_PRIORITY, str(priority))
+            priority = priority + 1
+        nodeForMethodExecutionEnter.tagName = "_" + str(methodExecutionEnter.executionTimeMicroSec)
+
+    # (2)处理stack中剩余项的信息，剩余项是有ENTER无EXIT的方法执行，正常情况下总数应该<=1个
     # 对于stack中剩余项，应该将其对应的xml node的time标记为unknown
     if stack.size() > 0:
         for methodExecution in stack.getItems():
@@ -88,7 +110,7 @@ def processTrace(strTraceFileAbsPath):
             stillInStackNode.tagName = "unknown"
             stillInStackNode.setAttribute(XML_NODE_ATTR_METHOD_TIME, "unknown")
 
-    # 写入xml
+    # (3)xml内容写入磁盘
     with open(strXMLOutputAbsPath, 'w') as f:
         strXML = doc.toprettyxml(indent='\t', encoding='utf-8').decode()
         # 用浏览器打开xml的时候需注掉下面两行
@@ -164,9 +186,9 @@ def processLine(order, strLine):
                 methodExecutionInStack.executionTimeMicroSec = methodExecution.elapsedTimeMicroSec - methodExecutionInStack.elapsedTimeMicroSec
                 # 即将出栈的MethodExecution是方法执行开始时的信息，现在已经执行完了，给他设置上总耗时
                 nodeForMethodExecutionInStack = doc.getElementsByTagName("_tmp_" + str(methodExecution.counterPartOrder))[0]
-                nodeForMethodExecutionInStack.setAttribute(XML_NODE_ATTR_METHOD_TIME, str(methodExecutionInStack.executionTimeMicroSec))
-                nodeForMethodExecutionInStack.tagName = "_" + str(methodExecutionInStack.executionTimeMicroSec)
+                methodEnters.append(methodExecutionInStack)
 
+                # 计算其上级node中所包含的所有方法的总时间
                 if nodeForMethodExecutionInStack.parentNode:
                     if nodeForMethodExecutionInStack.parentNode.getAttribute(XML_NODE_ATTR_CHILD_METHOD_TIME):
                         parentNodeChildMethodTime = int(nodeForMethodExecutionInStack.parentNode.getAttribute(XML_NODE_ATTR_CHILD_METHOD_TIME))

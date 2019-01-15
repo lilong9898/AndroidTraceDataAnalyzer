@@ -1,4 +1,3 @@
-
 function setUpControlPanel() {
     let btnExpandAll = CompatibleGetElementByID("btnExpandAll")
     let btnCollapseAll = CompatibleGetElementByID("btnCollapseAll")
@@ -154,15 +153,15 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
             //no-op
             event.cancelBubble = true;
         }
-        AddTextNode(TagEmptyElement, '<', 'Utility', onClickListener);
-        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener)
+        AddTextNode(TagEmptyElement, '<', 'Utility', onClickListener, RootNode);
+        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener, RootNode)
         for (var i = 0; RootNode.attributes && i < RootNode.attributes.length; ++i) {
             CurrentAttribute = RootNode.attributes.item(i);
-            AddTextNode(TagEmptyElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener);
-            AddTextNode(TagEmptyElement, '=', 'Utility', onClickListener);
-            AddTextNode(TagEmptyElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener);
+            AddTextNode(TagEmptyElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener, RootNode);
+            AddTextNode(TagEmptyElement, '=', 'Utility', onClickListener, RootNode);
+            AddTextNode(TagEmptyElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener, RootNode);
         }
-        AddTextNode(TagEmptyElement, ' />', onClickListener);
+        AddTextNode(TagEmptyElement, ' />', onClickListener, RootNode);
         xmlHolderElement.appendChild(TagEmptyElement);
         xmlHolderElement.appendChild(document.createElement('br'));
         //SetVisibility(TagEmptyElement,true);
@@ -171,19 +170,19 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
             ToggleElementVisibility(this);
             event.cancelBubble = true;
         };
-        AddTextNode(TagEmptyElement, '+', 'NavIcon', onClickListener);
-        AddTextNode(TagEmptyElement, '<', 'Utility', onClickListener);
-        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener)
+        AddTextNode(TagEmptyElement, '+', 'NavIcon', onClickListener, RootNode);
+        AddTextNode(TagEmptyElement, '<', 'Utility', onClickListener, RootNode);
+        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener, RootNode)
         for (var i = 0; RootNode.attributes && i < RootNode.attributes.length; ++i) {
             CurrentAttribute = RootNode.attributes.item(i);
-            AddTextNode(TagEmptyElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener);
-            AddTextNode(TagEmptyElement, '=', 'Utility', onClickListener);
-            AddTextNode(TagEmptyElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener);
+            AddTextNode(TagEmptyElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener, RootNode);
+            AddTextNode(TagEmptyElement, '=', 'Utility', onClickListener, RootNode);
+            AddTextNode(TagEmptyElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener, RootNode);
         }
 
-        AddTextNode(TagEmptyElement, '> ... </', 'Utility', onClickListener);
-        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener);
-        AddTextNode(TagEmptyElement, '>', 'Utility', onClickListener);
+        AddTextNode(TagEmptyElement, '> ... </', 'Utility', onClickListener, RootNode);
+        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener, RootNode);
+        AddTextNode(TagEmptyElement, '>', 'Utility', onClickListener, RootNode);
 
         TagEmptyElement.id = 'div_empty_' + IDCounter;
 
@@ -193,25 +192,25 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
 
         var TagElement = document.createElement('div');
         if (RootNode.getAttribute("depth")) {
-            TagElement.setAttribute("depth", RootNode.getAttribute("depth"))
+            TagElement.setAttribute("depth", RootNode.getAttribute("depth"), RootNode)
         }
         TagElement.className = 'Element';
         TagElement.style.position = 'relative';
         TagElement.style.left = NestingIndent + 'px';
-        AddTextNode(TagElement, '-', 'NavIcon', onClickListener);
+        AddTextNode(TagElement, '-', 'NavIcon', onClickListener, RootNode);
         TagElement.id = "div_content_" + IDCounter;
 
         ++IDCounter;
-        AddTextNode(TagElement, '<', 'Utility', onClickListener);
-        AddTextNode(TagElement, RootNode.nodeName, 'NodeName', onClickListener);
+        AddTextNode(TagElement, '<', 'Utility', onClickListener, RootNode);
+        AddTextNode(TagElement, RootNode.nodeName, 'NodeName', onClickListener, RootNode);
 
         for (var i = 0; RootNode.attributes && i < RootNode.attributes.length; ++i) {
             CurrentAttribute = RootNode.attributes.item(i);
-            AddTextNode(TagElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener);
-            AddTextNode(TagElement, '=', 'Utility', onClickListener);
-            AddTextNode(TagElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener);
+            AddTextNode(TagElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener, RootNode);
+            AddTextNode(TagElement, '=', 'Utility', onClickListener, RootNode);
+            AddTextNode(TagElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener, RootNode);
         }
-        AddTextNode(TagElement, '>', 'Utility', onClickListener);
+        AddTextNode(TagElement, '>', 'Utility', onClickListener, RootNode);
         TagElement.appendChild(document.createElement('br'));
         var NodeContent = null;
         for (var i = 0; RootNode.childNodes && i < RootNode.childNodes.length; ++i) {
@@ -228,12 +227,12 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
             var ContentElement = document.createElement('div');
             ContentElement.style.position = 'relative';
             ContentElement.style.left = NestingIndent + 'px';
-            AddTextNode(ContentElement, NodeContent, 'NodeValue', onClickListener);
+            AddTextNode(ContentElement, NodeContent, 'NodeValue', onClickListener, RootNode);
             TagElement.appendChild(ContentElement);
         }
-        AddTextNode(TagElement, '  </', 'Utility', onClickListener);
-        AddTextNode(TagElement, RootNode.nodeName, 'NodeName', onClickListener);
-        AddTextNode(TagElement, '>', 'Utility', onClickListener);
+        AddTextNode(TagElement, '  </', 'Utility', onClickListener, RootNode);
+        AddTextNode(TagElement, RootNode.nodeName, 'NodeName', onClickListener, RootNode);
+        AddTextNode(TagElement, '>', 'Utility', onClickListener, RootNode);
         xmlHolderElement.appendChild(TagElement);
     }
 
@@ -241,7 +240,7 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
     return Result;
 }
 
-function AddTextNode(ParentNode, Text, Class, onClickListener) {
+function AddTextNode(ParentNode, Text, Class, onClickListener, RootNode) {
     NewNode = document.createElement('span');
     if (Class) {
         NewNode.className = Class;
@@ -253,6 +252,13 @@ function AddTextNode(ParentNode, Text, Class, onClickListener) {
         ParentNode.appendChild(NewNode);
     }
     NewNode.onclick = onClickListener;
+    if (RootNode && RootNode.getAttribute("priority")) {
+        if (parseInt(RootNode.getAttribute("priority")) < 5) {
+            NewNode.style.cssText = "color:red;"
+        } else {
+            NewNode.style.cssText = "color:orange;"
+        }
+    }
     return NewNode;
 }
 
