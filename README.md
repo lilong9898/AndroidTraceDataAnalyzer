@@ -20,18 +20,32 @@
 [生成trace文件的方法](https://developer.android.com/studio/profile/generate-trace-logs)
 
 ### 运行：
-- 运行processor.py来分析trace log, 假设名字是xxx.trace，输出是在同级目录生成的叫xxx.xml的xml文件
-- 该xml文件会自动通过浏览器打开
+- 运行processor.py来分析trace log, 假设名字是xxx.trace，输出是在同级目录生成的叫xxx.html的html文件
+- 该html文件会自动通过浏览器打开
 <br>```python3 processor.py(相对或绝对路径) xxx.trace(必须是绝对路径)```
 
 ### 运行结果：
 ![demo](./demo.png)
-- XML中每个节点都是一次方法调用，节点的名字和"time"属性的值一样，都是这次调用的耗时
-- 耗时的单位都是微秒
-- 脚本默认<b>只统计主线程</b>的方法调用
-- 脚本默认<b>只统计有com.zhangyue和com.chaozh路径</b>的方法
-- 耗时是<b>inclusive</b>的，即这个方法从进入到退出的总时间，因为脚本默认只统计主线程，所以所有调用都是顺序执行的，每个方法的耗时都包括了子方法的调用耗时
-- 同级的节点，从上到下依次对应于调用时机的先后
-- 不同级的节点，父子节点关系对应于调用－被调用的关系
-- time属性是这次调用的总耗时，time_childen是其调用的所有子方法加起来的总耗时
-- 因为不是所有子方法都是com.zhangyue或com.chaozh包名的，有可能有调用系统包名的方法（即系统API），所以time属性的值大于等于time_children属性的值
+- 按钮说明
+   - Expand All : 展开所有节点
+   - Expand to depth 2 : 展开所有depth<=2的节点，其余收起
+   - Expand to depth 3 : 展开所有depth<=3的节点，其余收起
+   - Collapse All : 收起除root外的所有节点
+   - To Top : 滚动到最顶部
+   - To Bottom : 滚动到最底部
+- 节点结构说明：
+   - 每个节点都是一次方法调用，节点的名字和"time"属性的值一样，都是这次调用的耗时
+   - 耗时的单位都是微秒
+   - 耗时是<b>inclusive</b>的，即这个方法从进入到退出的总时间，因为脚本默认只统计主线程，所以所有调用都是顺序执行的，每个方法的耗时都包括了子方法的调用耗时
+   - 同级的节点，从上到下依次对应于调用时机的先后
+   - 不同级的节点，父子节点关系对应于调用－被调用的关系
+   - time属性是这次调用的总耗时，time_childen是其调用的所有子方法加起来的总耗时
+   - 因为不是所有子方法都是com.zhangyue或com.chaozh包名的，有可能有调用系统包名的方法（即系统API），所以time属性的值大于等于time_children属性的值
+- 过滤说明：
+   - 脚本默认<b>只统计主线程</b>的方法调用
+   - 脚本默认<b>只统计有com.zhangyue和com.chaozh路径</b>的方法
+- 排序说明：
+   - 有priority属性的节点，是所有这些方法中耗时前10名的方法
+   - 红色表示该方法在所有方法中耗时前5名
+   - 橙色表示该方法在所有方法中耗时6-10名
+
