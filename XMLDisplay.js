@@ -8,6 +8,27 @@
  * $Date: 2007-10-03 19:08:15 -0700 (Wed, 03 Oct 2007) $
  */
 
+function setUpControlPanel() {
+    var btnExpandAll = CompatibleGetElementByID("btnExpandAll")
+    var btnCollapseAll = CompatibleGetElementByID("btnCollapseAll")
+    var btnExpandToDepth2 = CompatibleGetElementByID("btnExpandToDepth2")
+    var btnExpandToDepth3 = CompatibleGetElementByID("btnExpandToDepth3")
+    btnExpandAll.onclick = function () {
+        expandUpToDepthOf(document.documentElement, Number.MAX_VALUE)
+    }
+    btnExpandToDepth2.onclick = function () {
+        collapseDownToDepthOf(document.documentElement, 1)
+        expandUpToDepthOf(document.documentElement, 2)
+    }
+    btnExpandToDepth3.onclick = function () {
+        collapseDownToDepthOf(document.documentElement, 1)
+        expandUpToDepthOf(document.documentElement, 3)
+    }
+    btnCollapseAll.onclick = function () {
+        collapseDownToDepthOf(document.documentElement, 1)
+    }
+}
+
 function LoadXML(ParentElementID, URL) {
     var xmlHolderElement = GetParentElement(ParentElementID);
     if (xmlHolderElement == null) {
@@ -24,10 +45,10 @@ function LoadXMLDom(ParentElementID, xmlDoc) {
             return false;
         }
         while (xmlHolderElement.childNodes.length) {
-            xmlHolderElement.removeChild(xmlHolderElement.childNodes.item(xmlHolderElement.childNodes.length - 1));
+            childElement = xmlHolderElement.childNodes.item(xmlHolderElement.childNodes.length - 1);
+            xmlHolderElement.removeChild(childElement);
         }
         var Result = ShowXML(xmlHolderElement, xmlDoc.documentElement, 0);
-
         return Result;
     } else {
         return false;
@@ -58,7 +79,7 @@ function URLReceiveCallback(httpRequest, xmlHolderElement) {
             if (httpRequest.status == 200) {
                 var xmlDoc = httpRequest.responseXML;
                 if (xmlHolderElement && xmlHolderElement != null) {
-                    xmlHolderElement.innerHTML = '';
+                    // xmlHolderElement.innerHTML = '';
                     return LoadXMLDom(xmlHolderElement, xmlDoc);
                 }
             } else {
@@ -120,6 +141,9 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
     }
     var Result = true;
     var TagEmptyElement = document.createElement('div');
+    if(RootNode.getAttribute("depth")){
+        TagEmptyElement.setAttribute("depth", RootNode.getAttribute("depth"))
+    }
     TagEmptyElement.className = 'Element';
     TagEmptyElement.style.position = 'relative';
     TagEmptyElement.style.left = NestingIndent + 'px';
@@ -135,7 +159,7 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
         AddTextNode(TagEmptyElement, ' />');
         xmlHolderElement.appendChild(TagEmptyElement);
         xmlHolderElement.appendChild(document.createElement('br'));
-        TagEmptyElement.onclick = function() {
+        TagEmptyElement.onclick = function () {
             //no-op
             event.cancelBubble = true;
         }
@@ -167,6 +191,9 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
         //----------------------------------------------
 
         var TagElement = document.createElement('div');
+        if(RootNode.getAttribute("depth")){
+            TagElement.setAttribute("depth", RootNode.getAttribute("depth"))
+        }
         TagElement.className = 'Element';
         TagElement.style.position = 'relative';
         TagElement.style.left = NestingIndent + 'px';
@@ -284,12 +311,39 @@ function ToggleElementVisibility(Element) {
     }
     ElementToHide = CompatibleGetElementByID(ElementToHide);
     ElementToShow = CompatibleGetElementByID(ElementToShow);
-    // if (ElementToHide) {
-    //     ElementToHide = ElementToHide.parentNode;
-    // }
-    // if (ElementToShow) {
-    //     ElementToShow = ElementToShow.parentNode;
-    // }
     SetVisibility(ElementToHide, false);
     SetVisibility(ElementToShow, true);
 }
+
+/** 展开xml节点，直到depth深度的节点已经显示出来*/
+function expandUpToDepthOf(node, depth) {
+    if (node.tagName.toLowerCase() == "div" && node.getAttribute("depth") && node.id && node.getAttribute("depth") <= depth - 1) {
+        if(node.id.startsWith("div_content_")){
+            SetVisibility(node, true)
+        }else if(node.id.startsWith("div_empty_")){
+            SetVisibility(node, false)
+        }
+    }
+    for (var i = 0; i < node.childNodes.length; i++) {
+        if (node.childNodes[i].nodeType === 1 && node.childNodes[i].childNodes.length > 0) {
+            expandUpToDepthOf(node.childNodes[i], depth)
+        }
+    }
+}
+
+/** 收起xml节点，直到depth深度的节点已经被收起*/
+function collapseDownToDepthOf(node, depth) {
+    if (node.tagName.toLowerCase() == "div" && node.getAttribute("depth") && node.id && node.getAttribute("depth") >= depth) {
+        if(node.id.startsWith("div_content_")){
+            SetVisibility(node, false)
+        }else if(node.id.startsWith("div_empty_")){
+            SetVisibility(node, true)
+        }
+    }
+    for (var i = 0; i < node.childNodes.length; i++) {
+        if (node.childNodes[i].nodeType === 1 && node.childNodes[i].childNodes.length > 0) {
+            collapseDownToDepthOf(node.childNodes[i], depth)
+        }
+    }
+}
+

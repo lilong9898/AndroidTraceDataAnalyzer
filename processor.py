@@ -37,6 +37,9 @@ XML_NODE_ATTR_METHOD_TIME = "time"
 # XML node 属性名字：所有子方法的执行总时间（微秒，因为只统计掌阅包名的方法，所以一个方法的总时间是大于其所有子方法的总时间的）
 XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
 
+# XML node 属性名字：深度
+XML_NODE_ATTR_DEPTH = "depth"
+
 # 解析trace文件
 def processTrace(strTraceFileAbsPath):
 
@@ -68,7 +71,7 @@ def processTrace(strTraceFileAbsPath):
     for line in bar(iter(pOpenInstance.stdout.readline, b'')):
         line = line.decode().strip()
         line = re.sub(r"\s+", " ", line)
-        processLineResult = processLine(order, line, strMethodExecutionInfoOutputAbsPath)
+        processLineResult = processLine(order, line)
         if processLineResult and "stopMethodTracing" in processLineResult.strLine:
             # 向xml的rootNode设置stopMethodTracing时的elapsedTime(微秒)，这也就是所trace的整个过程的耗时
             doc.getElementsByTagName(XML_ROOT_NODE_NAME)[0].setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
@@ -101,7 +104,7 @@ def processTrace(strTraceFileAbsPath):
 
 
 # 处理dmtracedump得到的trace文本文件中的一行
-def processLine(order, strLine, strMethodExecutionInfoOutputAbsPath):
+def processLine(order, strLine):
 
     # 如果该行是线程号-线程名的对应，则存入表中
     isThreadMap = re.match(r"^[0-9]+ ([a-zA-Z0-9-_:/.\u4e00-\u9fa5]+[ :-_])*[a-zA-Z0-9-_:/.\u4e00-\u9fa5]+$", strLine)
@@ -139,17 +142,13 @@ def processLine(order, strLine, strMethodExecutionInfoOutputAbsPath):
         if shouldBeFiltered(methodExecution):
             return ProcessLineResult(order, strLine, strElapsedTimeMicroSec)
 
-        # 写入txt
-        # with open(strMethodExecutionInfoOutputAbsPath, 'a') as f:
-        #     f.write(strLine)
-        #     f.write("\n")
-
         # 栈是空的，直接入栈，并写入xml
         if stack.is_empty():
             # if methodExecution.methodBoundaryAction == MethodExecution.ENTER:
             stack.push(methodExecution)
             node = doc.createElement("_tmp_" + str(methodExecution.order))
             node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, re.sub(r"^\.+", "", methodExecution.strMethodSignature))
+            node.setAttribute(XML_NODE_ATTR_DEPTH, "1")
             # 这时xml也是空的，加入首个node
             rootNode.appendChild(node)
         # 栈非空，取出最上面的元素，跟目前这个进行配对检测
@@ -184,6 +183,9 @@ def processLine(order, strLine, strMethodExecutionInfoOutputAbsPath):
                 # 找出并作为parent node加入当前的node
                 lastNodeInStack = stack.peek()
                 parentNode = doc.getElementsByTagName("_tmp_" + str(lastNodeInStack.order))[0]
+                parentNodeDepth = parentNode.getAttribute(XML_NODE_ATTR_DEPTH)
+                nodeDepth = int(parentNodeDepth) + 1
+                node.setAttribute(XML_NODE_ATTR_DEPTH, str(nodeDepth))
                 parentNode.appendChild(node)
                 node.setAttribute(XML_NODE_ATTR_METHOD_SIGNATURE, re.sub(r"^\.+", "", methodExecution.strMethodSignature))
                 # 入栈

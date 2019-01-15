@@ -1,42 +1,65 @@
 @charset "utf-8";
 /* CSS Document */
+.Button {
+    color: black;
+    cursor: pointer;
+    font-size: large;
+    margin: 10px;
+}
+
 .Utility {
     color: black;
-	cursor:pointer;
+    cursor: pointer;
 }
-.NodeName {
-	font-weight:bold;
-	color: #800080;
-	cursor:pointer;
-}
-.AttributeName 
-{
-	font-weight:bold;
-	color: black;
-	cursor:pointer;
-}
-.AttributeValue
-{
-	color:blue;
-	cursor:pointer;
-}
-.NodeValue
-{
-	color: black;
-	cursor:pointer;
-}
-.Element {
-	border-left-color:#00FF66;
-	border-left-width:thin;
-	border-left-style:solid;
-	padding-top:0px;
-	margin-top:10px;
-}
-.NavIcon {
-	font-weight:900;
-	font-size:large;
-	color: #800080;	
-	cursor:pointer;
 
-	vertical-align:middle;
+.NodeName {
+    font-weight: bold;
+    color: #800080;
+    cursor: pointer;
+}
+
+.AttributeName {
+    font-weight: bold;
+    color: black;
+    cursor: pointer;
+}
+
+.AttributeValue {
+    color: blue;
+    cursor: pointer;
+}
+
+.NodeValue {
+    color: black;
+    cursor: pointer;
+}
+
+.Element {
+    border-left-color: #00FF66;
+    border-left-width: thin;
+    border-left-style: solid;
+    padding-top: 0px;
+    margin-top: 10px;
+}
+
+.NavIcon {
+    font-weight: 900;
+    font-size: large;
+    color: #800080;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+#ControlPanel {
+    width: 100%;
+    height: 50px;
+    top: 0px;
+    position: fixed;
+    background: whitesmoke;
+}
+
+#XMLHolder {
+    margin-top: 50px;
+    width: 100%;
+    height: 100%;
 }
