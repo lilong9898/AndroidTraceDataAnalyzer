@@ -14,6 +14,18 @@ from MethodExecution import *
 from ProcessLineResult import *
 import webbrowser
 
+# XML node 属性名字：方法名
+XML_NODE_ATTR_METHOD_SIGNATURE = "method"
+
+# XML node 属性名字：此次执行总时间（微秒，包括内部调用的其它方法）
+XML_NODE_ATTR_METHOD_TIME = "time"
+
+# XML node 属性名字：所有子方法的执行总时间（微秒，因为只统计掌阅包名的方法，所以一个方法的总时间是大于其所有子方法的总时间的）
+XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
+
+# XML node 属性名字：深度
+XML_NODE_ATTR_DEPTH = "depth"
+
 # 进程号-进程名的列表
 threadMap = {};
 
@@ -26,19 +38,8 @@ doc = Document()
 # XML 根节点名字
 XML_ROOT_NODE_NAME = "root"
 rootNode = doc.createElement(XML_ROOT_NODE_NAME)
+rootNode.setAttribute(XML_NODE_ATTR_DEPTH, "0")
 doc.appendChild(rootNode)
-
-# XML node 属性名字：方法名
-XML_NODE_ATTR_METHOD_SIGNATURE = "method"
-
-# XML node 属性名字：此次执行总时间（微秒，包括内部调用的其它方法）
-XML_NODE_ATTR_METHOD_TIME = "time"
-
-# XML node 属性名字：所有子方法的执行总时间（微秒，因为只统计掌阅包名的方法，所以一个方法的总时间是大于其所有子方法的总时间的）
-XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
-
-# XML node 属性名字：深度
-XML_NODE_ATTR_DEPTH = "depth"
 
 # 解析trace文件
 def processTrace(strTraceFileAbsPath):

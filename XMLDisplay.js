@@ -1,18 +1,11 @@
-/* Copyright (c) 2007 Lev Muchnik <LevMuchnik@gmail.com>. All rights reserved.
- * You may copy and modify this script as long as the above copyright notice,
- * this condition and the following disclaimer is left intact.
- * This software is provided by the author "AS IS" and no warranties are
- * implied, including fitness for a particular purpose. In no event shall
- * the author be liable for any damages arising in any way out of the use
- * of this software, even if advised of the possibility of such damage.
- * $Date: 2007-10-03 19:08:15 -0700 (Wed, 03 Oct 2007) $
- */
 
 function setUpControlPanel() {
-    var btnExpandAll = CompatibleGetElementByID("btnExpandAll")
-    var btnCollapseAll = CompatibleGetElementByID("btnCollapseAll")
-    var btnExpandToDepth2 = CompatibleGetElementByID("btnExpandToDepth2")
-    var btnExpandToDepth3 = CompatibleGetElementByID("btnExpandToDepth3")
+    let btnExpandAll = CompatibleGetElementByID("btnExpandAll")
+    let btnCollapseAll = CompatibleGetElementByID("btnCollapseAll")
+    let btnExpandToDepth2 = CompatibleGetElementByID("btnExpandToDepth2")
+    let btnExpandToDepth3 = CompatibleGetElementByID("btnExpandToDepth3")
+    let btnScrollToTop = CompatibleGetElementByID("btnScrollToTop")
+    let btnScrollToBottom = CompatibleGetElementByID("btnScrollToBottom")
     btnExpandAll.onclick = function () {
         expandUpToDepthOf(document.documentElement, Number.MAX_VALUE)
     }
@@ -26,6 +19,15 @@ function setUpControlPanel() {
     }
     btnCollapseAll.onclick = function () {
         collapseDownToDepthOf(document.documentElement, 1)
+    }
+    btnScrollToTop.onclick = function () {
+        window.scrollTo(0, 0)
+    }
+    btnScrollToBottom.onclick = function () {
+        let XMLHolder = CompatibleGetElementByID("XMLHolder")
+        if (XMLHolder) {
+            window.scrollTo(0, XMLHolder.scrollHeight);
+        }
     }
 }
 
@@ -141,81 +143,75 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
     }
     var Result = true;
     var TagEmptyElement = document.createElement('div');
-    if(RootNode.getAttribute("depth")){
+    if (RootNode.getAttribute("depth")) {
         TagEmptyElement.setAttribute("depth", RootNode.getAttribute("depth"))
     }
     TagEmptyElement.className = 'Element';
     TagEmptyElement.style.position = 'relative';
     TagEmptyElement.style.left = NestingIndent + 'px';
     if (RootNode.childNodes.length == 0) {
-        AddTextNode(TagEmptyElement, '<', 'Utility');
-        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName')
-        for (var i = 0; RootNode.attributes && i < RootNode.attributes.length; ++i) {
-            CurrentAttribute = RootNode.attributes.item(i);
-            AddTextNode(TagEmptyElement, ' ' + CurrentAttribute.nodeName, 'AttributeName');
-            AddTextNode(TagEmptyElement, '=', 'Utility');
-            AddTextNode(TagEmptyElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue');
-        }
-        AddTextNode(TagEmptyElement, ' />');
-        xmlHolderElement.appendChild(TagEmptyElement);
-        xmlHolderElement.appendChild(document.createElement('br'));
-        TagEmptyElement.onclick = function () {
+        var onClickListener = function () {
             //no-op
             event.cancelBubble = true;
         }
-        //SetVisibility(TagEmptyElement,true);
-    } else { // mo child nodes
-
-        AddTextNode(TagEmptyElement, '+', 'NavIcon');
-        AddTextNode(TagEmptyElement, '<', 'Utility');
-        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName')
+        AddTextNode(TagEmptyElement, '<', 'Utility', onClickListener);
+        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener)
         for (var i = 0; RootNode.attributes && i < RootNode.attributes.length; ++i) {
             CurrentAttribute = RootNode.attributes.item(i);
-            AddTextNode(TagEmptyElement, ' ' + CurrentAttribute.nodeName, 'AttributeName');
-            AddTextNode(TagEmptyElement, '=', 'Utility');
-            AddTextNode(TagEmptyElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue');
+            AddTextNode(TagEmptyElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener);
+            AddTextNode(TagEmptyElement, '=', 'Utility', onClickListener);
+            AddTextNode(TagEmptyElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener);
         }
-
-        AddTextNode(TagEmptyElement, '> ... </', 'Utility');
-        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName');
-        AddTextNode(TagEmptyElement, '>', 'Utility');
-
-        TagEmptyElement.id = 'div_empty_' + IDCounter;
-        TagEmptyElement.onclick = function () {
+        AddTextNode(TagEmptyElement, ' />', onClickListener);
+        xmlHolderElement.appendChild(TagEmptyElement);
+        xmlHolderElement.appendChild(document.createElement('br'));
+        //SetVisibility(TagEmptyElement,true);
+    } else { // mo child nodes
+        var onClickListener = function () {
             ToggleElementVisibility(this);
             event.cancelBubble = true;
+        };
+        AddTextNode(TagEmptyElement, '+', 'NavIcon', onClickListener);
+        AddTextNode(TagEmptyElement, '<', 'Utility', onClickListener);
+        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener)
+        for (var i = 0; RootNode.attributes && i < RootNode.attributes.length; ++i) {
+            CurrentAttribute = RootNode.attributes.item(i);
+            AddTextNode(TagEmptyElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener);
+            AddTextNode(TagEmptyElement, '=', 'Utility', onClickListener);
+            AddTextNode(TagEmptyElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener);
         }
+
+        AddTextNode(TagEmptyElement, '> ... </', 'Utility', onClickListener);
+        AddTextNode(TagEmptyElement, RootNode.nodeName, 'NodeName', onClickListener);
+        AddTextNode(TagEmptyElement, '>', 'Utility', onClickListener);
+
+        TagEmptyElement.id = 'div_empty_' + IDCounter;
 
         xmlHolderElement.appendChild(TagEmptyElement);
         SetVisibility(TagEmptyElement, false);
         //----------------------------------------------
 
         var TagElement = document.createElement('div');
-        if(RootNode.getAttribute("depth")){
+        if (RootNode.getAttribute("depth")) {
             TagElement.setAttribute("depth", RootNode.getAttribute("depth"))
         }
         TagElement.className = 'Element';
         TagElement.style.position = 'relative';
         TagElement.style.left = NestingIndent + 'px';
-        AddTextNode(TagElement, '-', 'NavIcon');
+        AddTextNode(TagElement, '-', 'NavIcon', onClickListener);
         TagElement.id = "div_content_" + IDCounter;
 
-        TagElement.onclick = function () {
-            ToggleElementVisibility(this);
-            event.cancelBubble = true
-        }
-
         ++IDCounter;
-        AddTextNode(TagElement, '<', 'Utility');
-        AddTextNode(TagElement, RootNode.nodeName, 'NodeName');
+        AddTextNode(TagElement, '<', 'Utility', onClickListener);
+        AddTextNode(TagElement, RootNode.nodeName, 'NodeName', onClickListener);
 
         for (var i = 0; RootNode.attributes && i < RootNode.attributes.length; ++i) {
             CurrentAttribute = RootNode.attributes.item(i);
-            AddTextNode(TagElement, ' ' + CurrentAttribute.nodeName, 'AttributeName');
-            AddTextNode(TagElement, '=', 'Utility');
-            AddTextNode(TagElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue');
+            AddTextNode(TagElement, ' ' + CurrentAttribute.nodeName, 'AttributeName', onClickListener);
+            AddTextNode(TagElement, '=', 'Utility', onClickListener);
+            AddTextNode(TagElement, '"' + CurrentAttribute.nodeValue + '"', 'AttributeValue', onClickListener);
         }
-        AddTextNode(TagElement, '>', 'Utility');
+        AddTextNode(TagElement, '>', 'Utility', onClickListener);
         TagElement.appendChild(document.createElement('br'));
         var NodeContent = null;
         for (var i = 0; RootNode.childNodes && i < RootNode.childNodes.length; ++i) {
@@ -232,12 +228,12 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
             var ContentElement = document.createElement('div');
             ContentElement.style.position = 'relative';
             ContentElement.style.left = NestingIndent + 'px';
-            AddTextNode(ContentElement, NodeContent, 'NodeValue');
+            AddTextNode(ContentElement, NodeContent, 'NodeValue', onClickListener);
             TagElement.appendChild(ContentElement);
         }
-        AddTextNode(TagElement, '  </', 'Utility');
-        AddTextNode(TagElement, RootNode.nodeName, 'NodeName');
-        AddTextNode(TagElement, '>', 'Utility');
+        AddTextNode(TagElement, '  </', 'Utility', onClickListener);
+        AddTextNode(TagElement, RootNode.nodeName, 'NodeName', onClickListener);
+        AddTextNode(TagElement, '>', 'Utility', onClickListener);
         xmlHolderElement.appendChild(TagElement);
     }
 
@@ -245,7 +241,7 @@ function ShowXML(xmlHolderElement, RootNode, indent) {
     return Result;
 }
 
-function AddTextNode(ParentNode, Text, Class) {
+function AddTextNode(ParentNode, Text, Class, onClickListener) {
     NewNode = document.createElement('span');
     if (Class) {
         NewNode.className = Class;
@@ -256,6 +252,7 @@ function AddTextNode(ParentNode, Text, Class) {
     if (ParentNode) {
         ParentNode.appendChild(NewNode);
     }
+    NewNode.onclick = onClickListener;
     return NewNode;
 }
 
@@ -291,9 +288,10 @@ function SetVisibility(HTMLElement, Visible) {
 }
 
 function ToggleElementVisibility(Element) {
-    if (!Element || !Element.id) {
+    if (!Element) {
         return;
     }
+    Element = Element.parentNode;
     try {
         ElementType = Element.id.slice(0, Element.id.lastIndexOf('_') + 1);
         ElementID = parseInt(Element.id.slice(Element.id.lastIndexOf('_') + 1));
@@ -318,9 +316,9 @@ function ToggleElementVisibility(Element) {
 /** 展开xml节点，直到depth深度的节点已经显示出来*/
 function expandUpToDepthOf(node, depth) {
     if (node.tagName.toLowerCase() == "div" && node.getAttribute("depth") && node.id && node.getAttribute("depth") <= depth - 1) {
-        if(node.id.startsWith("div_content_")){
+        if (node.id.startsWith("div_content_")) {
             SetVisibility(node, true)
-        }else if(node.id.startsWith("div_empty_")){
+        } else if (node.id.startsWith("div_empty_")) {
             SetVisibility(node, false)
         }
     }
@@ -334,9 +332,9 @@ function expandUpToDepthOf(node, depth) {
 /** 收起xml节点，直到depth深度的节点已经被收起*/
 function collapseDownToDepthOf(node, depth) {
     if (node.tagName.toLowerCase() == "div" && node.getAttribute("depth") && node.id && node.getAttribute("depth") >= depth) {
-        if(node.id.startsWith("div_content_")){
+        if (node.id.startsWith("div_content_")) {
             SetVisibility(node, false)
-        }else if(node.id.startsWith("div_empty_")){
+        } else if (node.id.startsWith("div_empty_")) {
             SetVisibility(node, true)
         }
     }
