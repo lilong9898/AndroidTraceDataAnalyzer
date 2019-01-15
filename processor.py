@@ -8,11 +8,17 @@ import sys
 import re
 import os
 import progressbar
+import shutil
 from xml.dom.minidom import Document
 from Stack import *
 from MethodExecution import *
 from ProcessLineResult import *
 import webbrowser
+
+# 工程中的html css js文件的路径
+HTML_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.html");
+CSS_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.css");
+JS_ABS_PATH = os.path.realpath(os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.js");
 
 # XML node 属性名字：方法名
 XML_NODE_ATTR_METHOD_SIGNATURE = "method"
@@ -51,6 +57,7 @@ rootNode.setAttribute(XML_NODE_ATTR_DEPTH, "0")
 doc.appendChild(rootNode)
 
 # 解析trace文件
+# 最终输出xml html css js这四个文件到trace同级目录下，然后用浏览器打开html作为最终显示的结果
 def processTrace(strTraceFileAbsPath):
 
     # 输入的trace文件的目录
@@ -65,11 +72,22 @@ def processTrace(strTraceFileAbsPath):
     # 输出的xml文件的路径
     strXMLOutputAbsPath = os.path.join(strTraceFileDirPath, strTraceFileName + ".xml")
 
+    # 输出的html/css/js文件的路径
+    strHTMLOutputAbsPath = os.path.join(strTraceFileDirPath, strTraceFileName + ".html")
+    strCSSOutputAbsPath = os.path.join(strTraceFileDirPath, strTraceFileName + ".css")
+    strJSOutputAbsPath = os.path.join(strTraceFileDirPath, strTraceFileName + ".js")
+
     # 删除之前的所有输出文件
-    try:
+    if os.path.exists(strMethodExecutionInfoOutputAbsPath):
         os.remove(strMethodExecutionInfoOutputAbsPath)
+    if os.path.exists(strXMLOutputAbsPath):
         os.remove(strXMLOutputAbsPath)
-    except: BaseException
+    if os.path.exists(strHTMLOutputAbsPath):
+        os.remove(strHTMLOutputAbsPath)
+    if os.path.exists(strCSSOutputAbsPath):
+        os.remove(strCSSOutputAbsPath)
+    if os.path.exists(strJSOutputAbsPath):
+        os.remove(strJSOutputAbsPath)
 
     bar = progressbar.ProgressBar();
 
@@ -110,7 +128,7 @@ def processTrace(strTraceFileAbsPath):
             stillInStackNode.tagName = "unknown"
             stillInStackNode.setAttribute(XML_NODE_ATTR_METHOD_TIME, "unknown")
 
-    # (3)xml内容写入磁盘
+    # (3) xml内容写入磁盘
     with open(strXMLOutputAbsPath, 'w') as f:
         strXML = doc.toprettyxml(indent='\t', encoding='utf-8').decode()
         # 用浏览器打开xml的时候需注掉下面两行
@@ -118,11 +136,24 @@ def processTrace(strTraceFileAbsPath):
         # strXML = re.sub(r"&gt;", ">", strXML)
         f.write(strXML)
 
+    # (4) 其它辅助文件写入磁盘
+    # 直接复制即可，然后改掉html里引用的css，js和xml的名字
+    shutil.copy(HTML_ABS_PATH, strHTMLOutputAbsPath)
+    shutil.copy(CSS_ABS_PATH, strCSSOutputAbsPath)
+    shutil.copy(JS_ABS_PATH, strJSOutputAbsPath)
+
+    with open(strHTMLOutputAbsPath, "r") as htmlFile:
+        content = htmlFile.read()
+        content = content.replace("XMLDisplay", strTraceFileName)
+        content = content.replace("example_dmtrace", strTraceFileName)
+    with open(strHTMLOutputAbsPath, "w") as htmlFile:
+        htmlFile.write(content)
+
     print("-------------Done, current stack size is {0}--------------".format(str(stack.size())))
     stack.print()
 
-    # 用浏览器打开xml
-    webbrowser.open(strXMLOutputAbsPath)
+    # 用浏览器打开html
+    webbrowser.open(strHTMLOutputAbsPath)
     pass;
 
 
