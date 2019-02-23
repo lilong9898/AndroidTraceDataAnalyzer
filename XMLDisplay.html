@@ -1,0 +1,25 @@
+<html>
+<head>
+    <link href="XMLDisplay.css" type="text/css" rel="stylesheet">
+    <script type="text/javascript" src="XMLDisplay.js"/>
+</head>
+<body>
+<script type="text/javascript"></script>
+
+<div id="XMLHolder"></div>
+<div id="controlPanel">
+    <button id="btnExpandAll" class="Button">Expand All</button>
+    <button id="btnExpandToDepth2" class="Button">Expand to depth 2</button>
+    <button id="btnExpandToDepth3" class="Button">Expand to depth 3</button>
+    <button id="btnCollapseAll" class="Button">Collapse All</button>
+    <button id="btnScrollToTop" class="Button">To Top</button>
+    <button id="btnScrollToBottom" class="Button">To Bottom</button>
+    <b>ActualTime : ActualTimePlaceHolder</b>
+</div>
+
+<script type="text/javascript">
+    setUpControlPanel()
+    LoadXMLString("XMLHolder", getXMLString())
+</script>
+</body>
+</html>

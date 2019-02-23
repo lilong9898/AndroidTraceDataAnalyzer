@@ -58,7 +58,15 @@ doc.appendChild(rootNode)
 
 # 解析trace文件
 # 最终输出xml html css js这四个文件到trace同级目录下，然后用浏览器打开html作为最终显示的结果
-def processTrace(strTraceFileAbsPath):
+def processTrace(strTraceFileAbsPath, *strTimeFileAbsPath):
+
+    # 实际总耗时（毫秒）
+    strActualBootTimeMillis = None;
+
+    # 读取总耗时的文件，如果有的话
+    if len(strTimeFileAbsPath) == 1:
+        with open(strTimeFileAbsPath[0], "r") as timeFile:
+            strActualBootTimeMillis = timeFile.readline()
 
     # 输入的trace文件的目录
     strTraceFileDirPath = os.path.split(strTraceFileAbsPath)[0]
@@ -130,6 +138,7 @@ def processTrace(strTraceFileAbsPath):
 
     # (3) xml内容写入磁盘
     with open(strXMLOutputAbsPath, 'w') as f:
+        #　写入xml内容
         strXML = doc.toprettyxml(indent='\t', encoding='utf-8').decode()
         # 用浏览器打开xml的时候需注掉下面两行
         # strXML = re.sub(r"&lt;", "<", strXML)
@@ -142,9 +151,12 @@ def processTrace(strTraceFileAbsPath):
     shutil.copy(CSS_ABS_PATH, strCSSOutputAbsPath)
     shutil.copy(JS_ABS_PATH, strJSOutputAbsPath)
 
-    # 然后改掉html里引用的css，js和xml的名字
+    # 然后改掉html里引用的css，js和xml的名字，改掉actualTime
     with open(strHTMLOutputAbsPath, "r") as htmlFile:
         htmlContent = htmlFile.read()
+        # 如果需要的话，改掉actualTime
+        if strActualBootTimeMillis:
+            htmlContent = htmlContent.replace("ActualTimePlaceHolder", strActualBootTimeMillis)
         htmlContent = htmlContent.replace("XMLDisplay", strTraceFileName)
         htmlContent = htmlContent.replace("example_dmtrace", strTraceFileName)
     with open(strHTMLOutputAbsPath, "w") as htmlFile:
@@ -282,7 +294,11 @@ if len(sys.argv) == 1:
 elif len(sys.argv) == 2:
     processTrace(sys.argv[1]);
     exit(0)
+# 输入两个参数，即time.txt和trace文件的绝对路径
+elif len(sys.argv) == 3:
+    processTrace(sys.argv[1], sys.argv[2])
+    exit(0)
 # 参数太多，错误
 else:
-    print("ERROR : TOO MANY ARGUMENTS, SHOULD BE 1 OR 2")
+    print("ERROR : TOO MANY ARGUMENTS, SHOULD HAVE 0, 1 OR 2 ARGUMENTS")
     exit(1)
