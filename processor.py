@@ -36,7 +36,7 @@ XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
 XML_NODE_ATTR_DEPTH = "depth"
 
 # 只标注前多少名的priority
-LEAST_PRIORITY_CONCERNED = 10;
+LEAST_PRIORITY_CONCERNED = 20;
 
 # 进程号-进程名的列表
 threadMap = {};
@@ -55,6 +55,21 @@ XML_ROOT_NODE_NAME = "root"
 rootNode = doc.createElement(XML_ROOT_NODE_NAME)
 rootNode.setAttribute(XML_NODE_ATTR_DEPTH, "0")
 doc.appendChild(rootNode)
+
+# android framework中的包名, 这些包名需要被过滤掉
+AndroidFrameworkPackageNames = ["android\.", "java\."];
+
+def getAndroidFrameworkPackageNamesRE():
+    strAndroidFrameworkPackageNamesRE = "("
+    for i in range(0, len(AndroidFrameworkPackageNames)):
+        if i == 0:
+            strAndroidFrameworkPackageNamesRE = strAndroidFrameworkPackageNamesRE + AndroidFrameworkPackageNames[i]
+        else:
+            strAndroidFrameworkPackageNamesRE = strAndroidFrameworkPackageNamesRE + "|" + AndroidFrameworkPackageNames[i]
+    return strAndroidFrameworkPackageNamesRE + ")";
+
+# 用于正则表达式的android framework包名
+AndroidFrameworkRE = getAndroidFrameworkPackageNamesRE()
 
 # 解析trace文件
 # 最终输出xml html css js这四个文件到trace同级目录下，然后用浏览器打开html作为最终显示的结果
@@ -280,7 +295,8 @@ def shouldBeFiltered(methodExecution:MethodExecution):
     # 非主线程的过滤掉
     if methodExecution.strMethodThreadName != "main":
         shouldBeFiltered = True
-    elif not re.match(r".*(com.zhangyue|com.chaozh).*", methodExecution.strMethodSignature):
+    # framework中的类的包名过滤掉
+    elif re.match(r".*" + AndroidFrameworkRE + ".*", methodExecution.strMethodSignature):
         shouldBeFiltered = True
     return  shouldBeFiltered
 

@@ -253,7 +253,7 @@ function AddTextNode(ParentNode, Text, Class, onClickListener, RootNode) {
     }
     NewNode.onclick = onClickListener;
     if (RootNode && RootNode.getAttribute("priority")) {
-        if (parseInt(RootNode.getAttribute("priority")) < 5) {
+        if (parseInt(RootNode.getAttribute("priority")) < 10) {
             NewNode.style.cssText = "color:red;"
         } else {
             NewNode.style.cssText = "color:orange;"
