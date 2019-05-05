@@ -35,6 +35,9 @@ XML_NODE_ATTR_CHILD_METHOD_TIME = "time_children"
 # XML node 属性名字：深度
 XML_NODE_ATTR_DEPTH = "depth"
 
+# XML node 属性名字：当前方法时间占总时间的百分比
+XML_NODE_ATTR_PERCENTAGE = "time_percentage"
+
 # 只标注前多少名的priority
 LEAST_PRIORITY_CONCERNED = 20;
 
@@ -73,15 +76,7 @@ AndroidFrameworkRE = getAndroidFrameworkPackageNamesRE()
 
 # 解析trace文件
 # 最终输出xml html css js这四个文件到trace同级目录下，然后用浏览器打开html作为最终显示的结果
-def processTrace(strTraceFileAbsPath, *strTimeFileAbsPath):
-
-    # 实际总耗时（毫秒）
-    strActualBootTimeMillis = None;
-
-    # 读取总耗时的文件，如果有的话
-    if len(strTimeFileAbsPath) == 1:
-        with open(strTimeFileAbsPath[0], "r") as timeFile:
-            strActualBootTimeMillis = timeFile.readline()
+def processTrace(strTraceFileAbsPath):
 
     # 输入的trace文件的目录
     strTraceFileDirPath = os.path.split(strTraceFileAbsPath)[0]
@@ -118,6 +113,8 @@ def processTrace(strTraceFileAbsPath, *strTimeFileAbsPath):
     pOpenInstance = subprocess.Popen(commandDmTraceDump, stdout=PIPE, bufsize=1)
 
     order = 0;
+    # 运行总时间，微秒
+    totalTimeMicroSec = 0;
     print("Working...")
     for line in bar(iter(pOpenInstance.stdout.readline, b'')):
         line = line.decode().strip()
@@ -125,13 +122,15 @@ def processTrace(strTraceFileAbsPath, *strTimeFileAbsPath):
         processLineResult = processLine(order, line)
         if processLineResult and "stopMethodTracing" in processLineResult.strLine:
             # 向xml的rootNode设置stopMethodTracing时的elapsedTime(微秒)，这也就是所trace的整个过程的耗时
-            doc.getElementsByTagName(XML_ROOT_NODE_NAME)[0].setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
+            rootNode.setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
+            totalTimeMicroSec = int(processLineResult.strElapsedMicroSec)
         order = order + 1
     pOpenInstance.stdout.close()
 
     # 文件读取和逐行的处理完成，进行整体处理
 
-    # (1)针对方法的耗时，进行排序并标注到xml中
+    # (1)针对方法的耗时，进行排序并选取前几个标注为特殊颜色
+    # 同时针对方法的耗时，计算占总时间的百分比，并标注在xml中
     methodEntersSorted = sorted(methodEnters, key=lambda methodExecution:methodExecution.executionTimeMicroSec, reverse=True)
 
     priority = 0;
@@ -141,6 +140,7 @@ def processTrace(strTraceFileAbsPath, *strTimeFileAbsPath):
         if priority <= LEAST_PRIORITY_CONCERNED and int(nodeForMethodExecutionEnter.getAttribute(XML_NODE_ATTR_DEPTH)) < 3:
             nodeForMethodExecutionEnter.setAttribute(XML_NODE_ATTR_METHOD_TIME_PRIORITY, str(priority))
             priority = priority + 1
+        nodeForMethodExecutionEnter.setAttribute(XML_NODE_ATTR_PERCENTAGE, str(round(100.0 * methodExecutionEnter.executionTimeMicroSec / totalTimeMicroSec)) + "%")
         nodeForMethodExecutionEnter.tagName = "_" + str(methodExecutionEnter.executionTimeMicroSec)
 
     # (2)处理stack中剩余项的信息，剩余项是有ENTER无EXIT的方法执行，正常情况下总数应该<=1个
@@ -169,9 +169,6 @@ def processTrace(strTraceFileAbsPath, *strTimeFileAbsPath):
     # 然后改掉html里引用的css，js和xml的名字，改掉actualTime
     with open(strHTMLOutputAbsPath, "r") as htmlFile:
         htmlContent = htmlFile.read()
-        # 如果需要的话，改掉actualTime
-        if strActualBootTimeMillis:
-            htmlContent = htmlContent.replace("ActualTimePlaceHolder", strActualBootTimeMillis)
         htmlContent = htmlContent.replace("XMLDisplay", strTraceFileName)
         htmlContent = htmlContent.replace("example_dmtrace", strTraceFileName)
     with open(strHTMLOutputAbsPath, "w") as htmlFile:
