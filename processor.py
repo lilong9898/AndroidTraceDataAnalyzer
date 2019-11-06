@@ -4,9 +4,7 @@
 # 必须输入一个参数，即原始trace文件的路径
 import subprocess
 from subprocess import *
-import sys
 import re
-import os
 import progressbar
 from progressbar import *
 import shutil
@@ -64,8 +62,8 @@ rootNode.setAttribute(XML_NODE_ATTR_DEPTH, "0")
 doc.appendChild(rootNode)
 
 # android framework中的包名, 这些包名需要被过滤掉
-AndroidFrameworkPackageNames = ["android\.", "java\."];
-
+AndroidFrameworkPackageNames = ["android\\.", "java\\.", "dalvik\\.", "libcore\\.", "sun\\.",
+                                "io\\.", "com\\.google\\."];
 
 def getAndroidFrameworkPackageNamesRE():
     strAndroidFrameworkPackageNamesRE = "("
@@ -86,7 +84,6 @@ AndroidFrameworkRE = getAndroidFrameworkPackageNamesRE()
 # 解析trace文件
 # 最终输出xml html css js这四个文件到trace同级目录下，然后用浏览器打开html作为最终显示的结果
 def processTrace(strTraceFilePath):
-
     strTraceFileAbsPath = os.path.abspath(strTraceFilePath)
 
     # 输入的trace文件的目录
@@ -152,7 +149,7 @@ def processTrace(strTraceFilePath):
     priority = 0;
     for methodExecutionEnter in methodEntersSorted:
         nodeForMethodExecutionEnter = \
-        doc.getElementsByTagName("_tmp_" + str(methodExecutionEnter.order))[0]
+            doc.getElementsByTagName("_tmp_" + str(methodExecutionEnter.order))[0]
         nodeForMethodExecutionEnter.setAttribute(XML_NODE_ATTR_METHOD_TIME,
                                                  str(methodExecutionEnter.executionTimeMicroSec))
         if priority <= LEAST_PRIORITY_CONCERNED and int(
@@ -276,7 +273,7 @@ def processLine(order, strLine):
                 methodExecutionInStack.executionTimeMicroSec = methodExecution.elapsedTimeMicroSec - methodExecutionInStack.elapsedTimeMicroSec
                 # 即将出栈的MethodExecution是方法执行开始时的信息，现在已经执行完了，给他设置上总耗时
                 nodeForMethodExecutionInStack = \
-                doc.getElementsByTagName("_tmp_" + str(methodExecution.counterPartOrder))[0]
+                    doc.getElementsByTagName("_tmp_" + str(methodExecution.counterPartOrder))[0]
                 methodEnters.append(methodExecutionInStack)
 
                 # 计算其上级node中所包含的所有方法的总时间
