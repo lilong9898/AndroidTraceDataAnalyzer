@@ -1,12 +1,17 @@
 function setUpControlPanel() {
     let btnExpandAll = CompatibleGetElementByID("btnExpandAll")
     let btnCollapseAll = CompatibleGetElementByID("btnCollapseAll")
+    let btnExpandToDepth1 = CompatibleGetElementByID("btnExpandToDepth1")
     let btnExpandToDepth2 = CompatibleGetElementByID("btnExpandToDepth2")
     let btnExpandToDepth3 = CompatibleGetElementByID("btnExpandToDepth3")
     let btnScrollToTop = CompatibleGetElementByID("btnScrollToTop")
     let btnScrollToBottom = CompatibleGetElementByID("btnScrollToBottom")
     btnExpandAll.onclick = function () {
         expandUpToDepthOf(document.documentElement, Number.MAX_VALUE)
+    }
+    btnExpandToDepth1.onclick = function () {
+        collapseDownToDepthOf(document.documentElement, 1)
+        expandUpToDepthOf(document.documentElement, 1)
     }
     btnExpandToDepth2.onclick = function () {
         collapseDownToDepthOf(document.documentElement, 1)
