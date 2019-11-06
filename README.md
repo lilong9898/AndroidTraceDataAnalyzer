@@ -22,7 +22,7 @@
 ### 运行：
 - 运行processor.py来分析trace log, 假设名字是xxx.trace，输出是在同级目录生成的叫xxx.html的html文件
 - 该html文件会自动通过浏览器打开
-<br>```python3 processor.py(相对或绝对路径) xxx.trace(必须是绝对路径)```
+<br>```python3 processor.py(相对或绝对路径) xxx.trace(相对或绝对路径)```
 
 ### 运行结果：
 ![demo](./demo.png)
