@@ -16,11 +16,11 @@ import webbrowser
 
 # 工程中的html css js文件的路径
 HTML_ABS_PATH = os.path.realpath(
-    os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.html");
+    os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.html")
 CSS_ABS_PATH = os.path.realpath(
-    os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.css");
+    os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.css")
 JS_ABS_PATH = os.path.realpath(
-    os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.js");
+    os.path.abspath(os.path.dirname(sys.argv[0])) + os.path.sep + "XMLDisplay.js")
 
 # XML node 属性名字：方法名
 XML_NODE_ATTR_METHOD_SIGNATURE = "method"
@@ -41,10 +41,10 @@ XML_NODE_ATTR_DEPTH = "depth"
 XML_NODE_ATTR_PERCENTAGE = "time_percentage"
 
 # 只标注前多少名的priority
-LEAST_PRIORITY_CONCERNED = 20;
+LEAST_PRIORITY_CONCERNED = 20
 
 # 进程号-进程名的列表
-threadMap = {};
+threadMap = {}
 
 # 方法进入/退出信息被放进这个stack里进行配对
 stack = Stack()
@@ -63,7 +63,7 @@ doc.appendChild(rootNode)
 
 # android framework中的包名, 这些包名需要被过滤掉
 AndroidFrameworkPackageNames = ["android\\.", "java\\.", "dalvik\\.", "libcore\\.", "sun\\.",
-                                "io\\.", "com\\.google\\."];
+                                "io\\.", "com\\.google\\."]
 
 def getAndroidFrameworkPackageNamesRE():
     strAndroidFrameworkPackageNamesRE = "("
@@ -74,7 +74,7 @@ def getAndroidFrameworkPackageNamesRE():
         else:
             strAndroidFrameworkPackageNamesRE = strAndroidFrameworkPackageNamesRE + "|" + \
                                                 AndroidFrameworkPackageNames[i]
-    return strAndroidFrameworkPackageNamesRE + ")";
+    return strAndroidFrameworkPackageNamesRE + ")"
 
 
 # 用于正则表达式的android framework包名
@@ -90,7 +90,7 @@ def processTrace(strTraceFilePath):
     strTraceFileDirPath = os.path.split(strTraceFileAbsPath)[0]
 
     # 输入的trace文件的名字(不含.trace后缀)
-    strTraceFileName = os.path.splitext(os.path.split(strTraceFileAbsPath)[1])[0];
+    strTraceFileName = os.path.splitext(os.path.split(strTraceFileAbsPath)[1])[0]
 
     # 输出的过滤后的方法执行信息的文本文件路径
     strMethodExecutionInfoOutputAbsPath = os.path.join(strTraceFileDirPath,
@@ -118,14 +118,14 @@ def processTrace(strTraceFilePath):
 
     widgets = [Timer()]
 
-    bar = progressbar.ProgressBar(widgets=widgets);
+    bar = progressbar.ProgressBar(widgets=widgets)
 
     commandDmTraceDump = ["dmtracedump", "-o", strTraceFileAbsPath]
     pOpenInstance = subprocess.Popen(commandDmTraceDump, stdout=PIPE, bufsize=1)
 
-    order = 0;
+    order = 0
     # 运行总时间，微秒
-    totalTimeMicroSec = 0;
+    totalTimeMicroSec = 0
     print("Working...")
     for line in bar(iter(pOpenInstance.stdout.readline, b'')):
         line = line.decode().strip()
@@ -146,7 +146,7 @@ def processTrace(strTraceFilePath):
                                 key=lambda methodExecution: methodExecution.executionTimeMicroSec,
                                 reverse=True)
 
-    priority = 0;
+    priority = 0
     for methodExecutionEnter in methodEntersSorted:
         nodeForMethodExecutionEnter = \
             doc.getElementsByTagName("_tmp_" + str(methodExecutionEnter.order))[0]
@@ -335,7 +335,7 @@ if len(sys.argv) == 1:
     exit(0)
 # 输入一个参数，即trace文件的绝对路径
 elif len(sys.argv) == 2:
-    processTrace(sys.argv[1]);
+    processTrace(sys.argv[1])
     exit(0)
 # 输入两个参数，即time.txt和trace文件的绝对路径
 elif len(sys.argv) == 3:

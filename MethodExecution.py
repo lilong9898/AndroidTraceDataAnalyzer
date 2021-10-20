@@ -5,19 +5,19 @@
 # 某个方法的一次调用
 class MethodExecution:
     # 该方法开始执行
-    ENTER = "ENTER";
+    ENTER = "ENTER"
     # 该方法执行完毕
-    EXIT = "EXIT";
+    EXIT = "EXIT"
     # 未定的序号
     ORDER_UNKNOWN = -1
 
     def __init__(self, order, strMethodThreadName, strMethodSignature, strMethodClass,
                  methodBoundaryAction, strElapsedTimeMicroSec):
         # 序号，自增
-        self.order = order;
+        self.order = order
 
         # 与之匹配的另一个事件（如果这个是ENTER，则匹配的是EXIT，如果这个是EXIT，则匹配的是ENTER）的序号
-        self.counterPartOrder = self.ORDER_UNKNOWN;
+        self.counterPartOrder = self.ORDER_UNKNOWN
 
         # 方法所在的线程名
         self.strMethodThreadName = strMethodThreadName
