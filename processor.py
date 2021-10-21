@@ -2,11 +2,12 @@
 # coding=utf-8
 
 # 必须输入一个参数，即原始trace文件的路径
+import os
 import subprocess
+import sys
+import time
 from subprocess import *
 import re
-import progressbar
-from progressbar import *
 import shutil
 from xml.dom.minidom import Document
 from Stack import *
@@ -65,6 +66,23 @@ doc.appendChild(rootNode)
 AndroidFrameworkPackageNames = ["android\\.", "java\\.", "dalvik\\.", "libcore\\.", "sun\\.",
                                 "io\\.", "com\\.google\\."]
 
+def readLineCount(fileAbsPath):
+    start = time.time()
+    with open(fileAbsPath,'rb') as f:
+        count = 0
+        last_data = '\n'
+        while True:
+            data = f.read(0x400000)
+            if not data:
+                break
+            count += data.count(b'\n')
+            last_data = data
+        if last_data[-1:] != b'\n':
+            count += 1 # Remove this if a wc-like count is needed
+    end = time.time()
+    print("done. consuming {0} second".format(str(int(end-start))))
+    return count
+
 def getAndroidFrameworkPackageNamesRE():
     strAndroidFrameworkPackageNamesRE = "("
     for i in range(0, len(AndroidFrameworkPackageNames)):
@@ -93,7 +111,7 @@ def processTrace(strTraceFilePath):
     strTraceFileName = os.path.splitext(os.path.split(strTraceFileAbsPath)[1])[0]
 
     # 输出的过滤后的方法执行信息的文本文件路径
-    strMethodExecutionInfoOutputAbsPath = os.path.join(strTraceFileDirPath,
+    strTraceTxtFileAbsPath = os.path.join(strTraceFileDirPath,
                                                        strTraceFileName + ".txt")
 
     # 输出的xml文件的路径
@@ -105,8 +123,8 @@ def processTrace(strTraceFilePath):
     strJSOutputAbsPath = os.path.join(strTraceFileDirPath, strTraceFileName + ".js")
 
     # 删除之前的所有输出文件
-    if os.path.exists(strMethodExecutionInfoOutputAbsPath):
-        os.remove(strMethodExecutionInfoOutputAbsPath)
+    if os.path.exists(strTraceTxtFileAbsPath):
+        os.remove(strTraceTxtFileAbsPath)
     if os.path.exists(strXMLOutputAbsPath):
         os.remove(strXMLOutputAbsPath)
     if os.path.exists(strHTMLOutputAbsPath):
@@ -116,18 +134,28 @@ def processTrace(strTraceFilePath):
     if os.path.exists(strJSOutputAbsPath):
         os.remove(strJSOutputAbsPath)
 
-    widgets = [Timer()]
-
-    bar = progressbar.ProgressBar(widgets=widgets)
-
-    commandDmTraceDump = ["dmtracedump", "-o", strTraceFileAbsPath]
-    pOpenInstance = subprocess.Popen(commandDmTraceDump, stdout=PIPE, bufsize=1)
+    print("start dumping {0} to {1}".format(strTraceFileAbsPath, strTraceTxtFileAbsPath))
+    startTime = time.time()
+    commandDmTraceDump = ["D:\\AndroidSDK\\platform-tools\\dmtracedump.exe", "-o", strTraceFileAbsPath]
+    outFile = open(strTraceTxtFileAbsPath, 'w')
+    # commandDmTraceDump = ["dmtracedump", "-o", strTraceFileAbsPath]
+    pOpenInstance = subprocess.Popen(commandDmTraceDump, stdout=outFile)
+    pOpenInstance.wait()
+    outFile.close()
+    print("done. consuming {0} seconds".format(str(int(time.time() - startTime))))
+    print("end dumping {0} to {1}".format(strTraceFileAbsPath, strTraceTxtFileAbsPath))
 
     order = 0
     # 运行总时间，微秒
     totalTimeMicroSec = 0
-    print("Working...")
-    for line in bar(iter(pOpenInstance.stdout.readline, b'')):
+
+    print("reading line count of {0}".format(strTraceTxtFileAbsPath))
+    lineCount = readLineCount(strTraceTxtFileAbsPath)
+    print("line count = {0}".format(str(lineCount)))
+
+    print("Analyzing...")
+    pOpenInstance = subprocess.Popen(commandDmTraceDump, stdout=PIPE)
+    for line in iter(pOpenInstance.stdout.readline, b''):
         line = line.decode().strip()
         line = re.sub(r"\s+", " ", line)
         processLineResult = processLine(order, line)
@@ -136,6 +164,8 @@ def processTrace(strTraceFilePath):
             rootNode.setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
             totalTimeMicroSec = int(processLineResult.strElapsedMicroSec)
         order = order + 1
+        if (order % 10000 == 0):
+            print("{0} % done".format(int(100.0 * order / lineCount)), end='\r')
     pOpenInstance.stdout.close()
 
     # 文件读取和逐行的处理完成，进行整体处理
@@ -185,7 +215,7 @@ def processTrace(strTraceFilePath):
     shutil.copy(JS_ABS_PATH, strJSOutputAbsPath)
 
     # 然后改掉html里引用的css，js和xml的名字，改掉actualTime
-    with open(strHTMLOutputAbsPath, "r") as htmlFile:
+    with open(strHTMLOutputAbsPath, "r", errors='ignore') as htmlFile:
         htmlContent = htmlFile.read()
         htmlContent = htmlContent.replace("XMLDisplay", strTraceFileName)
         htmlContent = htmlContent.replace("example_dmtrace", strTraceFileName)
@@ -193,11 +223,11 @@ def processTrace(strTraceFilePath):
         htmlFile.write(htmlContent)
 
     # 读取xml内容到字符串
-    with open(strXMLOutputAbsPath, "r") as xmlFile:
+    with open(strXMLOutputAbsPath, "r", errors='ignore') as xmlFile:
         xmlContent = xmlFile.read()
 
     # 替换掉js里的getXMLString方法的返回值
-    with open(strJSOutputAbsPath, "r") as jsFile:
+    with open(strJSOutputAbsPath, "r", errors='ignore') as jsFile:
         jsContent = jsFile.read()
         jsContent = jsContent.replace("XML_STR_PLACE_HOLDER",
                                       xmlContent.replace("\"", "\\\"").replace("\n", "\"+\n\""))
@@ -236,7 +266,10 @@ def processLine(order, strLine):
             strExecutionBoundaryAction = MethodExecution.EXIT
         strElapsedTimeMicroSec = splitResult[2]
         strMethodSignature = splitResult[3] + " " + splitResult[4]
-        strMethodClass = splitResult[5]
+        if len(splitResult) >= 6:
+            strMethodClass = splitResult[5]
+        else:
+            strMethodClass = strMethodSignature
 
         methodExecution = None
         try:
@@ -322,6 +355,8 @@ def shouldBeFiltered(methodExecution: MethodExecution):
         shouldBeFiltered = True
     # framework中的类的包名过滤掉
     elif re.match(r".*" + AndroidFrameworkRE + ".*", methodExecution.strMethodSignature):
+        shouldBeFiltered = True
+    elif not re.match(r".*(com.qizhi|com.minxing).*", methodExecution.strMethodSignature):
         shouldBeFiltered = True
     return shouldBeFiltered
 
