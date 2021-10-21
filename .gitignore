@@ -10,3 +10,6 @@ venv/*
 dmtrace.css
 dmtrace.html
 dmtrace.js
+/build
+/dist
+*.spec
