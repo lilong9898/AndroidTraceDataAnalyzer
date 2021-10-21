@@ -164,8 +164,8 @@ def processTrace(strTraceFilePath):
             rootNode.setAttribute(XML_NODE_ATTR_METHOD_TIME, processLineResult.strElapsedMicroSec)
             totalTimeMicroSec = int(processLineResult.strElapsedMicroSec)
         order = order + 1
-        if (order % 10000 == 0):
-            print("{0} % done".format(int(100.0 * order / lineCount)), end='\r')
+        if order % 10000 == 0:
+            print("{0} % done".format(int(100.0 * order / lineCount)))
     pOpenInstance.stdout.close()
 
     # 文件读取和逐行的处理完成，进行整体处理
