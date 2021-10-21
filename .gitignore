@@ -7,3 +7,7 @@ venv/*
 *.xls
 *.txt
 *.xml
+dmtrace.css
+dmtrace.html
+dmtrace.js
+dmtrace.trace
